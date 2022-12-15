@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"mime/multipart"
+	"path"
 	"time"
 
 	dbconfig "github.com/aniket0951/Chatrapati-Maharaj/db-config"
@@ -15,6 +18,7 @@ import (
 )
 
 var videoCategoryCollection *mongo.Collection = dbconfig.GetCollection(dbconfig.DB, "video_category")
+var videosCollection *mongo.Collection = dbconfig.GetCollection(dbconfig.DB, "videos")
 
 type VideoRepository interface {
 	CreateCategory(categories models.VideoCategories) (models.VideoCategories, error)
@@ -22,16 +26,24 @@ type VideoRepository interface {
 	GetAllCategory() ([]models.VideoCategories, error)
 	DeleteCategory(categoryId primitive.ObjectID) error
 	DuplicateCategory(categoryName string) (bool, error)
+
+	AddVideo(video models.Videos, file multipart.File) error
+	GetAllVideos() ([]models.Videos, error)
+	UpdateVideo(video models.Videos) error
+	DeleteVideo(videoId primitive.ObjectID) error
+
 	Init() (context.Context, context.CancelFunc)
 }
 
 type videocategoriesrepo struct {
-	collection *mongo.Collection
+	collection       *mongo.Collection
+	videoscollection *mongo.Collection
 }
 
 func NewVideoCategoriesRepository() VideoRepository {
 	return &videocategoriesrepo{
-		collection: videoCategoryCollection,
+		collection:       videoCategoryCollection,
+		videoscollection: videosCollection,
 	}
 }
 
@@ -151,4 +163,109 @@ func (db *videocategoriesrepo) DuplicateCategory(categoryName string) (bool, err
 
 	return true, errors.New("this category already exits")
 
+}
+
+func (db *videocategoriesrepo) AddVideo(video models.Videos, file multipart.File) error {
+
+	video.ID = primitive.NewObjectID()
+	video.CreatedAt = primitive.NewDateTimeFromTime(time.Now())
+	video.UpdatedAt = primitive.NewDateTimeFromTime(time.Now())
+
+	tempFile, err := ioutil.TempFile("static", "upload-*.mp4")
+
+	if err != nil {
+		return err
+	}
+
+	defer tempFile.Close()
+
+	fileBytes, fileReader := ioutil.ReadAll(file)
+
+	if fileReader != nil {
+		return fileReader
+	}
+
+	tempFile.Write(fileBytes)
+	defer file.Close()
+	defer tempFile.Close()
+
+	video.VideoPath = "/" + path.Base(tempFile.Name())
+
+	ctx, cancel := db.Init()
+	defer cancel()
+
+	_, insErr := db.videoscollection.InsertOne(ctx, &video)
+
+	if insErr != nil {
+		return insErr
+	}
+
+	return nil
+}
+
+func (db *videocategoriesrepo) GetAllVideos() ([]models.Videos, error) {
+	ctx, cancel := db.Init()
+	defer cancel()
+
+	cursor, curErr := db.videoscollection.Find(ctx, bson.M{})
+
+	if curErr != nil {
+		return []models.Videos{}, curErr
+	}
+
+	videos := []models.Videos{}
+
+	if err := cursor.All(ctx, &videos); err != nil {
+		return []models.Videos{}, err
+	}
+
+	return videos, nil
+}
+
+func (db *videocategoriesrepo) UpdateVideo(video models.Videos) error {
+	update := bson.D{
+		bson.E{Key: "$set", Value: bson.D{
+			bson.E{Key: "video_title", Value: video.VideoTitle},
+			bson.E{Key: "video_desc", Value: video.VideoDescription},
+			bson.E{Key: "is_active", Value: video.IsVideoActive},
+			bson.E{Key: "v_cat_id", Value: video.VideoCategoriesID},
+			bson.E{Key: "updated_at", Value: primitive.NewDateTimeFromTime(time.Now())},
+		}},
+	}
+
+	ctx, cancel := db.Init()
+	defer cancel()
+
+	res, upErr := db.videoscollection.UpdateByID(ctx, video.ID, update)
+
+	if upErr != nil {
+		return upErr
+	}
+
+	if res.MatchedCount == 0 {
+		return errors.New("video not found to update")
+	}
+
+	return nil
+}
+
+func (db *videocategoriesrepo) DeleteVideo(videoId primitive.ObjectID) error {
+	ctx, cancel := db.Init()
+	defer cancel()
+
+	filter := bson.D{
+		bson.E{Key: "_id", Value: videoId},
+	}
+
+	res, err := db.videoscollection.DeleteOne(ctx, filter)
+
+	if err != nil {
+		return err
+	}
+
+	if res.DeletedCount == 0 {
+		return errors.New("failed to delete the video")
+	}
+
+	return nil
 }

@@ -1,6 +1,9 @@
 package services
 
 import (
+	"errors"
+	"mime/multipart"
+
 	"github.com/aniket0951/Chatrapati-Maharaj/dto"
 	"github.com/aniket0951/Chatrapati-Maharaj/models"
 	"github.com/aniket0951/Chatrapati-Maharaj/repositories"
@@ -14,6 +17,11 @@ type VideoService interface {
 	GetAllCategory() ([]dto.GetVideoCategoriesDTO, error)
 	DeleteCategory(categoryId primitive.ObjectID) error
 	DuplicateCategory(categoryName string) (bool, error)
+
+	AddVideo(video dto.CreateVideosDTO, file multipart.File) error
+	GetAllVideos() ([]dto.GetVideosDTO, error)
+	UpdateVideo(video dto.UpdateVideoDTO) error
+	DeleteVideo(videoId primitive.ObjectID) error
 }
 
 type videocategoriesservice struct {
@@ -105,4 +113,61 @@ func (ser *videocategoriesservice) DeleteCategory(categoryId primitive.ObjectID)
 
 func (ser *videocategoriesservice) DuplicateCategory(categoryName string) (bool, error) {
 	return ser.repo.DuplicateCategory(categoryName)
+}
+
+func (ser *videocategoriesservice) AddVideo(video dto.CreateVideosDTO, file multipart.File) error {
+	videoToCreate := models.Videos{}
+
+	if smpErr := smapping.FillStruct(&videoToCreate, smapping.MapFields(video)); smpErr != nil {
+		return smpErr
+	}
+
+	err := ser.repo.AddVideo(videoToCreate, file)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ser *videocategoriesservice) GetAllVideos() ([]dto.GetVideosDTO, error) {
+	res, err := ser.repo.GetAllVideos()
+
+	if err != nil {
+		return []dto.GetVideosDTO{}, nil
+	}
+
+	allVideos := []dto.GetVideosDTO{}
+
+	if len(res) == 0 {
+		return []dto.GetVideosDTO{}, errors.New("videos not availabel")
+	}
+
+	for i := range res {
+		temp := dto.GetVideosDTO{}
+		smapping.FillStruct(&temp, smapping.MapFields(res[i]))
+
+		videoPath := "http://localhost:5000/static/" + temp.VideoPath
+		temp.VideoPath = videoPath
+		allVideos = append(allVideos, temp)
+	}
+
+	return allVideos, nil
+}
+
+func (ser *videocategoriesservice) UpdateVideo(video dto.UpdateVideoDTO) error {
+	videoToUpdate := models.Videos{}
+
+	if smpErr := smapping.FillStruct(&videoToUpdate, smapping.MapFields(video)); smpErr != nil {
+		return smpErr
+	}
+
+	return ser.repo.UpdateVideo(videoToUpdate)
+
+}
+
+func (ser *videocategoriesservice) DeleteVideo(videoId primitive.ObjectID) error {
+	err := ser.repo.DeleteVideo(videoId)
+
+	return err
 }

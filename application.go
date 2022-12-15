@@ -18,6 +18,8 @@ const (
 func main() {
 	router := gin.Default()
 
+	router.Static("static", "static")
+
 	router.GET("/", func(ctx *gin.Context) {
 		response := map[string]interface{}{}
 

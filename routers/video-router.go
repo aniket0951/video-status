@@ -23,4 +23,12 @@ func VideoRouter(route *gin.Engine) {
 		videoCategory.GET("/all-category", videoController.GetAllCategory)
 		videoCategory.DELETE("/delete-category", videoController.DeleteCategory)
 	}
+
+	videos := route.Group("/api/videos")
+	{
+		videos.POST("/add-video", videoController.AddVideo)
+		videos.GET("/get-all-videos", videoController.GetAllVideos)
+		videos.PUT("/update-video", videoController.UpdateVideo)
+		videos.DELETE("/delete-video", videoController.DeleteVideo)
+	}
 }

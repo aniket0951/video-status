@@ -2,6 +2,7 @@ package controller
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/aniket0951/Chatrapati-Maharaj/dto"
 	"github.com/aniket0951/Chatrapati-Maharaj/helper"
@@ -16,6 +17,11 @@ type VideoController interface {
 	UpdateCategory(ctx *gin.Context)
 	GetAllCategory(ctx *gin.Context)
 	DeleteCategory(ctx *gin.Context)
+
+	AddVideo(ctx *gin.Context)
+	GetAllVideos(ctx *gin.Context)
+	UpdateVideo(ctx *gin.Context)
+	DeleteVideo(ctx *gin.Context)
 }
 
 type videocontroller struct {
@@ -127,6 +133,115 @@ func (c *videocontroller) DeleteCategory(ctx *gin.Context) {
 
 	if delErr != nil {
 		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, delErr.Error(), helper.VIDEO_DATA, helper.EmptyObj{})
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
+	}
+
+	response := helper.BuildSuccessResponse(helper.DELETE_SUCCESS, helper.VIDEO_DATA, helper.EmptyObj{})
+	ctx.JSON(http.StatusOK, response)
+}
+
+func (c *videocontroller) AddVideo(ctx *gin.Context) {
+	file, _, _ := ctx.Request.FormFile("video")
+	title := ctx.Request.PostForm.Get("title")
+	desc := ctx.Request.PostForm.Get("desc")
+	isActive := ctx.Request.PostForm.Get("is_active")
+	videoCatId := ctx.Request.PostForm.Get("video_cat_id")
+
+	isActiveConverted, _ := strconv.ParseBool(isActive)
+	objID, _ := primitive.ObjectIDFromHex(videoCatId)
+
+	videoToCreate := dto.CreateVideosDTO{
+		VideoTitle:        title,
+		VideoDescription:  desc,
+		IsVideoActive:     isActiveConverted,
+		VideoCategoriesID: objID,
+	}
+
+	sv := validator.New()
+
+	if svErr := sv.Struct(&videoToCreate); svErr != nil {
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, svErr.Error(), helper.VIDEO_DATA, helper.EmptyObj{})
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
+	}
+
+	err := c.service.AddVideo(videoToCreate, file)
+
+	if err != nil {
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.VIDEO_DATA, helper.EmptyObj{})
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
+	}
+
+	response := helper.BuildSuccessResponse(helper.DATA_INSERTED, helper.VIDEO_DATA, helper.EmptyObj{})
+	ctx.AbortWithStatusJSON(http.StatusOK, response)
+}
+
+func (c *videocontroller) GetAllVideos(ctx *gin.Context) {
+	res, err := c.service.GetAllVideos()
+
+	if err != nil {
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.VIDEO_DATA, helper.EmptyObj{})
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
+	}
+
+	response := helper.BuildSuccessResponse("Video "+helper.DATA_FOUND, helper.VIDEO_DATA, res)
+	ctx.JSON(http.StatusOK, response)
+}
+
+func (c *videocontroller) UpdateVideo(ctx *gin.Context) {
+	videoToUpdate := dto.UpdateVideoDTO{}
+
+	ctx.BindJSON(&videoToUpdate)
+
+	if (videoToUpdate == dto.UpdateVideoDTO{}) {
+		helper.RequestBodyEmptyResponse(ctx)
+		return
+	}
+
+	err := c.service.UpdateVideo(videoToUpdate)
+
+	if err != nil {
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.VIDEO_DATA, helper.EmptyObj{})
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
+	}
+
+	response := helper.BuildSuccessResponse(helper.UPDATE_SUCCESS, helper.VIDEO_DATA, helper.EmptyObj{})
+	ctx.JSON(http.StatusOK, response)
+
+	defer ctx.Request.Body.Close()
+}
+
+func (c *videocontroller) DeleteVideo(ctx *gin.Context) {
+	defer ctx.Request.Body.Close()
+	videoId := ctx.Request.URL.Query().Get("video_id")
+
+	if len(videoId) <= 0 {
+		helper.RequestBodyEmptyResponse(ctx)
+		return
+	}
+
+	if !primitive.IsValidObjectID(videoId) {
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, "Invalid video id provided please check video id", helper.VIDEO_DATA, helper.EmptyObj{})
+		ctx.AbortWithStatusJSON(http.StatusUnprocessableEntity, response)
+		return
+	}
+
+	objId, objErr := primitive.ObjectIDFromHex(videoId)
+
+	if objErr != nil {
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, objErr.Error(), helper.VIDEO_DATA, helper.EmptyObj{})
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
+	}
+
+	err := c.service.DeleteVideo(objId)
+
+	if err != nil {
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.VIDEO_DATA, helper.EmptyObj{})
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
