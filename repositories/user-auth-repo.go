@@ -7,6 +7,7 @@ import (
 	"log"
 	"time"
 
+	dbconfig "github.com/aniket0951/Chatrapati-Maharaj/db-config"
 	"github.com/aniket0951/Chatrapati-Maharaj/helper"
 	"github.com/aniket0951/Chatrapati-Maharaj/models"
 	"go.mongodb.org/mongo-driver/bson"
@@ -23,16 +24,24 @@ type UserAuthRepository interface {
 	DuplicateMobile(mobile string) bool
 	DuplicateEmail(email string) (models.AdminUser, bool)
 
+	AddAdminUserAddress(address models.AdminUserAddressInfo) error
+	CheckUserAddressAlreadyAdded(userId primitive.ObjectID) (models.AdminUserAddressInfo, error)
+	UpdateAdminAddress(address models.AdminUserAddressInfo) error
+
 	Init() (context.Context, context.CancelFunc)
 }
 
+var userAddressCollection *mongo.Collection = dbconfig.GetCollection(dbconfig.DB, "user_address")
+
 type userauthrepository struct {
-	userconnection *mongo.Collection
+	userconnection        *mongo.Collection
+	userAddressConnection *mongo.Collection
 }
 
 func NewUserAuthRepository(userCollection *mongo.Collection) UserAuthRepository {
 	return &userauthrepository{
-		userconnection: userCollection,
+		userconnection:        userCollection,
+		userAddressConnection: userAddressCollection,
 	}
 }
 
@@ -145,6 +154,64 @@ func (db *userauthrepository) DuplicateEmail(email string) (models.AdminUser, bo
 
 	res := db.userconnection.FindOne(ctx, filter).Decode(&adminUser)
 	return adminUser, res == mongo.ErrNoDocuments
+}
+
+func (db *userauthrepository) AddAdminUserAddress(address models.AdminUserAddressInfo) error {
+	ctx, cancel := db.Init()
+	defer cancel()
+
+	_, err := db.userAddressConnection.InsertOne(ctx, &address)
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (db *userauthrepository) CheckUserAddressAlreadyAdded(userId primitive.ObjectID) (models.AdminUserAddressInfo, error) {
+	filter := bson.D{
+		bson.E{Key: "userId", Value: userId},
+	}
+
+	ctx, cancel := db.Init()
+	defer cancel()
+
+	userAddress := models.AdminUserAddressInfo{}
+
+	db.userAddressConnection.FindOne(ctx, filter).Decode(&userAddress)
+
+	if (userAddress == models.AdminUserAddressInfo{}) {
+		return models.AdminUserAddressInfo{}, nil
+	}
+
+	return userAddress, errors.New("user address already exits, please try to update address")
+}
+
+func (db *userauthrepository) UpdateAdminAddress(address models.AdminUserAddressInfo) error {
+	update := bson.D{
+		bson.E{Key: "$set", Value: bson.D{
+			bson.E{Key: "state", Value: address.State},
+			bson.E{Key: "city", Value: address.City},
+			bson.E{Key: "address", Value: address.Addressline},
+			bson.E{Key: "updated_at", Value: primitive.NewDateTimeFromTime(time.Now())},
+		}},
+	}
+
+	ctx, cancel := db.Init()
+	defer cancel()
+
+	res, err := db.userAddressConnection.UpdateByID(ctx, address.ID, update)
+
+	if err != nil {
+		return err
+	}
+
+	if res.MatchedCount == 0 {
+		return errors.New("address not found for update")
+	}
+
+	return nil
+
 }
 
 func hasAndSalt(pwd []byte) string {

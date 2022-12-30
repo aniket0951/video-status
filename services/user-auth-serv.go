@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"log"
+	"time"
 
 	"github.com/aniket0951/Chatrapati-Maharaj/dto"
 	"github.com/aniket0951/Chatrapati-Maharaj/helper"
@@ -18,6 +19,10 @@ type UserAuthService interface {
 	CreateAdminUser(user dto.CreateAdminUserDTO) (dto.GetAdminUserDTO, error)
 	ValidateAdminUser(email string, pass string) (dto.GetAdminUserDTO, error)
 	GetUserById(adminId primitive.ObjectID) (dto.GetAdminUserDTO, error)
+
+	AddAdminUserAddress(address dto.CreateAdminUserAddress) error
+	GetAdminUserAddress(userId primitive.ObjectID) (dto.GetAdminUserAddress, error)
+	UpdateAdminAddress(address dto.UpdateAdminAddressDTO) error
 }
 
 type userauthservice struct {
@@ -111,6 +116,59 @@ func (ser *userauthservice) GetUserById(adminId primitive.ObjectID) (dto.GetAdmi
 
 	return adminUser, nil
 
+}
+
+func (ser *userauthservice) AddAdminUserAddress(address dto.CreateAdminUserAddress) error {
+	addressToCreate := models.AdminUserAddressInfo{}
+
+	if smpErr := smapping.FillStruct(&addressToCreate, smapping.MapFields(address)); smpErr != nil {
+		return smpErr
+	}
+
+	userObjId, objErr := primitive.ObjectIDFromHex(string(address.UserID.Hex()))
+
+	if objErr != nil {
+		return objErr
+	}
+
+	_, userAddErr := ser.repo.CheckUserAddressAlreadyAdded(userObjId)
+
+	if userAddErr != nil {
+		return userAddErr
+	}
+
+	addressToCreate.CreatedAt = primitive.NewDateTimeFromTime(time.Now())
+	addressToCreate.UpdatedAt = primitive.NewDateTimeFromTime(time.Now())
+
+	err := ser.repo.AddAdminUserAddress(addressToCreate)
+
+	return err
+}
+
+func (ser *userauthservice) GetAdminUserAddress(userId primitive.ObjectID) (dto.GetAdminUserAddress, error) {
+	userAddress, err := ser.repo.CheckUserAddressAlreadyAdded(userId)
+
+	if err == nil {
+		return dto.GetAdminUserAddress{}, errors.New(helper.DATA_NOT_FOUND)
+	}
+
+	address := dto.GetAdminUserAddress{}
+
+	smapping.FillStruct(&address, smapping.MapFields(&userAddress))
+
+	return address, nil
+}
+
+func (ser *userauthservice) UpdateAdminAddress(address dto.UpdateAdminAddressDTO) error {
+	addressToUpdate := models.AdminUserAddressInfo{}
+
+	if smpErr := smapping.FillStruct(&addressToUpdate, smapping.MapFields(address)); smpErr != nil {
+		return smpErr
+	}
+
+	upErr := ser.repo.UpdateAdminAddress(addressToUpdate)
+
+	return upErr
 }
 
 func comparePassword(hashedPwd string, plainPassword []byte) bool {

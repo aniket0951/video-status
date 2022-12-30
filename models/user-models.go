@@ -1,6 +1,8 @@
 package models
 
-import "go.mongodb.org/mongo-driver/bson/primitive"
+import (
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
 
 type Users struct {
 	ID           primitive.ObjectID `json:"id,omitempty" bson:"_id"`
@@ -20,4 +22,14 @@ type AdminUser struct {
 	UserType     string             `json:"user_type" bson:"user_type"`
 	CreatedAt    primitive.DateTime `json:"created_at" bson:"created_at"`
 	UpdatedAt    primitive.DateTime `json:"updated_at" bson:"updated_at"`
+}
+
+type AdminUserAddressInfo struct {
+	ID          primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	State       string             `json:"state" bson:"state"`
+	City        string             `json:"city" bson:"city"`
+	Addressline string             `json:"address" bson:"address"`
+	UserID      primitive.ObjectID `json:"userId" bson:"userId"`
+	CreatedAt   primitive.DateTime `json:"created_at" bson:"created_at"`
+	UpdatedAt   primitive.DateTime `json:"updated_at" bson:"updated_at"`
 }

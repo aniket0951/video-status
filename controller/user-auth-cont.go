@@ -17,6 +17,10 @@ type UserAuthController interface {
 	CreateAdminUser(ctx *gin.Context)
 	AdminUserLogin(ctx *gin.Context)
 	GetUserById(ctx *gin.Context)
+
+	AddAdminUserAddress(ctx *gin.Context)
+	GetAdminUserAdrress(ctx *gin.Context)
+	UpdateAdminAddress(ctx *gin.Context)
 }
 
 type userauthcontroller struct {
@@ -156,4 +160,94 @@ func (c *userauthcontroller) GetUserById(ctx *gin.Context) {
 
 	response := helper.BuildSuccessResponse(helper.FETCHED_SUCCESS, helper.USER_DATA, res)
 	ctx.JSON(http.StatusOK, response)
+}
+
+func (c *userauthcontroller) AddAdminUserAddress(ctx *gin.Context) {
+	addressToCreate := dto.CreateAdminUserAddress{}
+	ctx.BindJSON(&addressToCreate)
+
+	if (addressToCreate == dto.CreateAdminUserAddress{}) {
+		helper.RequestBodyEmptyResponse(ctx)
+		return
+	}
+
+	userId, userIdConErr := primitive.ObjectIDFromHex(helper.USER_ID)
+
+	if userIdConErr != nil {
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, userIdConErr.Error(), helper.USER_DATA, helper.EmptyObj{})
+		ctx.AbortWithStatusJSON(http.StatusUnprocessableEntity, response)
+		return
+	}
+
+	addressToCreate.UserID = userId
+
+	sv := validator.New()
+
+	if svErr := sv.Struct(&addressToCreate); svErr != nil {
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, svErr.Error(), helper.USER_DATA, helper.EmptyObj{})
+		ctx.AbortWithStatusJSON(http.StatusUnprocessableEntity, response)
+		return
+	}
+
+	err := c.service.AddAdminUserAddress(addressToCreate)
+
+	if err != nil {
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.USER_DATA, helper.EmptyObj{})
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
+	}
+
+	response := helper.BuildSuccessResponse("Address addedd successfully.", helper.USER_DATA, helper.EmptyObj{})
+	ctx.JSON(http.StatusOK, response)
+}
+
+func (c *userauthcontroller) GetAdminUserAdrress(ctx *gin.Context) {
+	userId, err := primitive.ObjectIDFromHex(helper.USER_ID)
+
+	if err != nil {
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.USER_DATA, helper.EmptyObj{})
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
+	}
+
+	address, addErr := c.service.GetAdminUserAddress(userId)
+
+	if addErr != nil {
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, addErr.Error(), helper.USER_DATA, helper.EmptyObj{})
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
+	}
+
+	response := helper.BuildSuccessResponse(helper.DATA_FOUND, helper.USER_DATA, address)
+	ctx.JSON(http.StatusOK, response)
+}
+
+func (c *userauthcontroller) UpdateAdminAddress(ctx *gin.Context) {
+	addressToUpdate := dto.UpdateAdminAddressDTO{}
+	ctx.BindJSON(&addressToUpdate)
+
+	if (addressToUpdate == dto.UpdateAdminAddressDTO{}) {
+		helper.RequestBodyEmptyResponse(ctx)
+		return
+	}
+
+	sv := validator.New()
+
+	if svErr := sv.Struct(&addressToUpdate); svErr != nil {
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, svErr.Error(), helper.USER_DATA, helper.EmptyObj{})
+		ctx.AbortWithStatusJSON(http.StatusUnprocessableEntity, response)
+		return
+	}
+
+	err := c.service.UpdateAdminAddress(addressToUpdate)
+
+	if err != nil {
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.USER_DATA, helper.EmptyObj{})
+		ctx.AbortWithStatusJSON(http.StatusUnprocessableEntity, response)
+		return
+	}
+
+	response := helper.BuildSuccessResponse(helper.UPDATE_SUCCESS, helper.USER_DATA, helper.EmptyObj{})
+	ctx.JSON(http.StatusOK, response)
+
 }
