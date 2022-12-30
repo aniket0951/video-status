@@ -9,12 +9,14 @@ import (
 	"github.com/aniket0951/Chatrapati-Maharaj/services"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type UserAuthController interface {
 	CreateEndUser(ctx *gin.Context)
 	CreateAdminUser(ctx *gin.Context)
 	AdminUserLogin(ctx *gin.Context)
+	GetUserById(ctx *gin.Context)
 }
 
 type userauthcontroller struct {
@@ -119,5 +121,39 @@ func (c *userauthcontroller) AdminUserLogin(ctx *gin.Context) {
 	res.Token = generateToken
 
 	response := helper.BuildSuccessResponse("You are login successfully.", helper.USER_DATA, res)
+	ctx.JSON(http.StatusOK, response)
+}
+
+func (c *userauthcontroller) GetUserById(ctx *gin.Context) {
+	userId := helper.USER_ID
+
+	if userId == "" {
+		helper.RequestBodyEmptyResponse(ctx)
+		return
+	}
+
+	if !primitive.IsValidObjectID(userId) {
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, helper.INVALID_ID, helper.USER_DATA, helper.EmptyObj{})
+		ctx.AbortWithStatusJSON(http.StatusUnprocessableEntity, response)
+		return
+	}
+
+	objId, objErr := primitive.ObjectIDFromHex(userId)
+
+	if objErr != nil {
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, objErr.Error(), helper.USER_DATA, helper.EmptyObj{})
+		ctx.AbortWithStatusJSON(http.StatusUnprocessableEntity, response)
+		return
+	}
+
+	res, err := c.service.GetUserById(objId)
+
+	if err != nil {
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.USER_DATA, helper.EmptyObj{})
+		ctx.AbortWithStatusJSON(http.StatusUnprocessableEntity, response)
+		return
+	}
+
+	response := helper.BuildSuccessResponse(helper.FETCHED_SUCCESS, helper.USER_DATA, res)
 	ctx.JSON(http.StatusOK, response)
 }

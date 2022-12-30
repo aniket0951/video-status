@@ -24,5 +24,6 @@ func UserAuthRouter(router *gin.Engine) {
 		userAuth.POST("/create-user", userAuthCont.CreateEndUser)
 		userAuth.POST("/create-admin-user", userAuthCont.CreateAdminUser)
 		userAuth.POST("/admin-user-login", userAuthCont.AdminUserLogin)
+		userAuth.GET("/get-user-byID", userAuthCont.GetUserById)
 	}
 }

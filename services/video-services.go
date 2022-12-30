@@ -68,12 +68,6 @@ func (ser *videocategoriesservice) UpdateCategory(category dto.CreateVideoCatego
 		return dto.GetVideoCategoriesDTO{}, smpErr
 	}
 
-	_, err := ser.repo.DuplicateCategory(category.CategoryName)
-
-	if err != nil {
-		return dto.GetVideoCategoriesDTO{}, err
-	}
-
 	result, resErr := ser.repo.UpdateCategory(categoryToUpdate)
 
 	if resErr != nil {
@@ -82,7 +76,7 @@ func (ser *videocategoriesservice) UpdateCategory(category dto.CreateVideoCatego
 
 	newCategory := dto.GetVideoCategoriesDTO{}
 	smapping.FillStruct(&newCategory, smapping.MapFields(result))
-	return newCategory, err
+	return newCategory, nil
 }
 
 func (ser *videocategoriesservice) GetAllCategory() ([]dto.GetVideoCategoriesDTO, error) {

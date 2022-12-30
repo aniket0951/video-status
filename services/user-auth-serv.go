@@ -9,6 +9,7 @@ import (
 	"github.com/aniket0951/Chatrapati-Maharaj/models"
 	"github.com/aniket0951/Chatrapati-Maharaj/repositories"
 	"github.com/mashingan/smapping"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -16,6 +17,7 @@ type UserAuthService interface {
 	CreateEndUser(user dto.RegisterEndUserDTO) (dto.RegisterEndUserDTO, error)
 	CreateAdminUser(user dto.CreateAdminUserDTO) (dto.GetAdminUserDTO, error)
 	ValidateAdminUser(email string, pass string) (dto.GetAdminUserDTO, error)
+	GetUserById(adminId primitive.ObjectID) (dto.GetAdminUserDTO, error)
 }
 
 type userauthservice struct {
@@ -94,6 +96,21 @@ func (ser *userauthservice) ValidateAdminUser(email string, pass string) (dto.Ge
 	}
 
 	return dto.GetAdminUserDTO{}, errors.New("password not matched")
+}
+
+func (ser *userauthservice) GetUserById(adminId primitive.ObjectID) (dto.GetAdminUserDTO, error) {
+	res, err := ser.repo.GetAdminUserById(adminId)
+
+	if err != nil {
+		return dto.GetAdminUserDTO{}, err
+	}
+
+	adminUser := dto.GetAdminUserDTO{}
+
+	smapping.FillStruct(&adminUser, smapping.MapFields(&res))
+
+	return adminUser, nil
+
 }
 
 func comparePassword(hashedPwd string, plainPassword []byte) bool {
