@@ -31,6 +31,8 @@ func AuthorizeJWT(jwtService services.JWTService) gin.HandlerFunc {
 		if token.Valid {
 			claims := token.Claims.(jwt.MapClaims)
 			fmt.Println("claim user id is", claims["user_id"])
+			str := fmt.Sprintf("%v", claims["user_id"])
+			helper.USER_ID = str
 		}
 
 	}

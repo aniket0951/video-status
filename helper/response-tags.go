@@ -34,3 +34,5 @@ var DATA = "data"
 var USER_DATA = "user_data"
 var VIDEO_DATA = "video_data"
 var VIDEO_CATEGORY = "video_category"
+
+var USER_ID = ""

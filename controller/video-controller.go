@@ -138,7 +138,7 @@ func (c *videocontroller) DeleteCategory(ctx *gin.Context) {
 	}
 
 	response := helper.BuildSuccessResponse(helper.DELETE_SUCCESS, helper.VIDEO_DATA, helper.EmptyObj{})
-	ctx.JSON(http.StatusOK, response)
+	ctx.AbortWithStatusJSON(http.StatusOK, response)
 }
 
 func (c *videocontroller) AddVideo(ctx *gin.Context) {
