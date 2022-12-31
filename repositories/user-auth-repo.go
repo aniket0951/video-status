@@ -7,6 +7,7 @@ import (
 	"log"
 	"time"
 
+	dbconfig "github.com/aniket0951/Chatrapati-Maharaj/db-config"
 	"github.com/aniket0951/Chatrapati-Maharaj/helper"
 	"github.com/aniket0951/Chatrapati-Maharaj/models"
 	"go.mongodb.org/mongo-driver/bson"
@@ -19,20 +20,29 @@ type UserAuthRepository interface {
 	CreateEndUser(user models.Users) (models.Users, error)
 	CreateAdminUser(adminuser models.AdminUser) (models.AdminUser, error)
 	GetAdminUserById(adminId primitive.ObjectID) (models.AdminUser, error)
+	GetAllAdminUsers() ([]models.AdminUser, error)
 	ValidateAdminUser(email string) (models.AdminUser, error)
 	DuplicateMobile(mobile string) bool
 	DuplicateEmail(email string) (models.AdminUser, bool)
 
+	AddAdminUserAddress(address models.AdminUserAddressInfo) error
+	CheckUserAddressAlreadyAdded(userId primitive.ObjectID) (models.AdminUserAddressInfo, error)
+	UpdateAdminAddress(address models.AdminUserAddressInfo) error
+
 	Init() (context.Context, context.CancelFunc)
 }
 
+var userAddressCollection *mongo.Collection = dbconfig.GetCollection(dbconfig.DB, "user_address")
+
 type userauthrepository struct {
-	userconnection *mongo.Collection
+	userconnection        *mongo.Collection
+	userAddressConnection *mongo.Collection
 }
 
 func NewUserAuthRepository(userCollection *mongo.Collection) UserAuthRepository {
 	return &userauthrepository{
-		userconnection: userCollection,
+		userconnection:        userCollection,
+		userAddressConnection: userAddressCollection,
 	}
 }
 
@@ -91,10 +101,25 @@ func (db *userauthrepository) CreateAdminUser(adminuser models.AdminUser) (model
 }
 
 func (db *userauthrepository) GetAdminUserById(adminId primitive.ObjectID) (models.AdminUser, error) {
-	fmt.Println("Admin ID ==> ", adminId)
+
 	filter := bson.D{
 		bson.E{Key: "_id", Value: adminId},
 	}
+
+	//pipline := []bson.M{
+	//	bson.M{
+	//		"$match": bson.M{
+	//			"_id": adminId,
+	//		},
+	//	},
+	//	bson.M{
+	//		"$lookup": bson.M{
+	//			"from": "user_address",
+	//			"localfield": "_id",
+	//			"foreignField": "user"
+	//		},
+	//	},
+	//}
 
 	ctx, cancel := db.Init()
 	defer cancel()
@@ -107,6 +132,26 @@ func (db *userauthrepository) GetAdminUserById(adminId primitive.ObjectID) (mode
 	}
 
 	return adminUser, nil
+}
+
+func (db *userauthrepository) GetAllAdminUsers() ([]models.AdminUser, error) {
+	ctx, cancel := db.Init()
+	defer cancel()
+
+	allAdminUsers := []models.AdminUser{}
+
+	cursor, curErr := db.userconnection.Find(ctx, bson.M{})
+
+	if curErr != nil {
+		return []models.AdminUser{}, curErr
+	}
+
+	if err := cursor.All(context.TODO(), &allAdminUsers); err != nil {
+		return []models.AdminUser{}, err
+	}
+
+	return allAdminUsers, nil
+
 }
 
 func (db *userauthrepository) ValidateAdminUser(email string) (models.AdminUser, error) {
@@ -145,6 +190,64 @@ func (db *userauthrepository) DuplicateEmail(email string) (models.AdminUser, bo
 
 	res := db.userconnection.FindOne(ctx, filter).Decode(&adminUser)
 	return adminUser, res == mongo.ErrNoDocuments
+}
+
+func (db *userauthrepository) AddAdminUserAddress(address models.AdminUserAddressInfo) error {
+	ctx, cancel := db.Init()
+	defer cancel()
+
+	_, err := db.userAddressConnection.InsertOne(ctx, &address)
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (db *userauthrepository) CheckUserAddressAlreadyAdded(userId primitive.ObjectID) (models.AdminUserAddressInfo, error) {
+	filter := bson.D{
+		bson.E{Key: "userId", Value: userId},
+	}
+
+	ctx, cancel := db.Init()
+	defer cancel()
+
+	userAddress := models.AdminUserAddressInfo{}
+
+	db.userAddressConnection.FindOne(ctx, filter).Decode(&userAddress)
+
+	if (userAddress == models.AdminUserAddressInfo{}) {
+		return models.AdminUserAddressInfo{}, nil
+	}
+
+	return userAddress, errors.New("user address already exits, please try to update address")
+}
+
+func (db *userauthrepository) UpdateAdminAddress(address models.AdminUserAddressInfo) error {
+	update := bson.D{
+		bson.E{Key: "$set", Value: bson.D{
+			bson.E{Key: "state", Value: address.State},
+			bson.E{Key: "city", Value: address.City},
+			bson.E{Key: "address", Value: address.Addressline},
+			bson.E{Key: "updated_at", Value: primitive.NewDateTimeFromTime(time.Now())},
+		}},
+	}
+
+	ctx, cancel := db.Init()
+	defer cancel()
+
+	res, err := db.userAddressConnection.UpdateByID(ctx, address.ID, update)
+
+	if err != nil {
+		return err
+	}
+
+	if res.MatchedCount == 0 {
+		return errors.New("address not found for update")
+	}
+
+	return nil
+
 }
 
 func hasAndSalt(pwd []byte) string {

@@ -21,13 +21,37 @@ type AdminLoginDTO struct {
 }
 
 type GetAdminUserDTO struct {
-	ID           primitive.ObjectID `json:"id,omitempty"`
-	UserName     string             `json:"username"`
-	MobileNumber string             `json:"mobile"`
-	Email        string             `json:"email" `
-	Password     string             `json:"password"`
-	UserType     string             `json:"user_type"`
-	Token        string             `json:"token,omitempty"`
-	CreatedAt    primitive.DateTime `json:"created_at"`
-	UpdatedAt    primitive.DateTime `json:"updated_at"`
+	ID           primitive.ObjectID  `json:"id,omitempty"`
+	UserName     string              `json:"username"`
+	MobileNumber string              `json:"mobile"`
+	Email        string              `json:"email" `
+	UserType     string              `json:"user_type"`
+	Token        string              `json:"token,omitempty"`
+	UserAddress  GetAdminUserAddress `json:"user_adddress,omitempty"`
+	CreatedAt    primitive.DateTime  `json:"created_at"`
+	UpdatedAt    primitive.DateTime  `json:"updated_at"`
+}
+
+type CreateAdminUserAddress struct {
+	State       string             `json:"state" validate:"required"`
+	City        string             `json:"city" validate:"required"`
+	Addressline string             `json:"address" validate:"required"`
+	UserID      primitive.ObjectID `json:"userId" validate:"required"`
+}
+
+type UpdateAdminAddressDTO struct {
+	ID          primitive.ObjectID `json:"id" validate:"required"`
+	State       string             `json:"state" validate:"required"`
+	City        string             `json:"city" validate:"required"`
+	Addressline string             `json:"address" validate:"required"`
+}
+
+type GetAdminUserAddress struct {
+	ID          primitive.ObjectID `json:"id"`
+	State       string             `json:"state"`
+	City        string             `json:"city"`
+	Addressline string             `json:"address" `
+	UserID      primitive.ObjectID `json:"userId" `
+	CreatedAt   primitive.DateTime `json:"created_at" `
+	UpdatedAt   primitive.DateTime `json:"updated_at" `
 }

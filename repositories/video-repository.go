@@ -3,7 +3,6 @@ package repositories
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"mime/multipart"
 	"path"
@@ -79,8 +78,6 @@ func (db *videocategoriesrepo) UpdateCategory(categories models.VideoCategories)
 			bson.E{Key: "updated_at", Value: primitive.NewDateTimeFromTime(time.Now())},
 		}},
 	}
-
-	fmt.Println("id ==> ", categories.ID)
 
 	ctx, cancel := db.Init()
 	defer cancel()
