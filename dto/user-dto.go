@@ -15,6 +15,14 @@ type CreateAdminUserDTO struct {
 	UserType     string `json:"user_type" `
 }
 
+type UpdateAdminUserDTO struct {
+	ID           primitive.ObjectID `json:"id,omitempty"`
+	UserName     string             `json:"username" validate:"required"`
+	MobileNumber string             `json:"mobile" validate:"required"`
+	Email        string             `json:"email" validate:"required"`
+	UserType     string             `json:"user_type" validate:"required"`
+}
+
 type AdminLoginDTO struct {
 	Email    string `json:"email"  validate:"required,email"`
 	Password string `json:"password"  validate:"required"`

@@ -20,6 +20,7 @@ type UserAuthService interface {
 	ValidateAdminUser(email string, pass string) (dto.GetAdminUserDTO, error)
 	GetUserById(adminId primitive.ObjectID) (dto.GetAdminUserDTO, error)
 	GetAllAdminUsers() ([]dto.GetAdminUserDTO, error)
+	UpdateAdminUserInfo(adminUser dto.UpdateAdminUserDTO) error
 
 	AddAdminUserAddress(address dto.CreateAdminUserAddress) error
 	GetAdminUserAddress(userId primitive.ObjectID) (dto.GetAdminUserAddress, error)
@@ -188,6 +189,16 @@ func (ser *userauthservice) UpdateAdminAddress(address dto.UpdateAdminAddressDTO
 	upErr := ser.repo.UpdateAdminAddress(addressToUpdate)
 
 	return upErr
+}
+
+func (ser *userauthservice) UpdateAdminUserInfo(adminUser dto.UpdateAdminUserDTO) error {
+	userToUpdate := models.AdminUser{}
+
+	if smpErr := smapping.FillStruct(&userToUpdate, smapping.MapFields(adminUser)); smpErr != nil {
+		return smpErr
+	}
+
+	return ser.repo.UpdateAdminUserInfo(userToUpdate)
 }
 
 func comparePassword(hashedPwd string, plainPassword []byte) bool {
