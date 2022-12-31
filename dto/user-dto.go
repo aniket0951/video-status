@@ -27,7 +27,7 @@ type GetAdminUserDTO struct {
 	Email        string              `json:"email" `
 	UserType     string              `json:"user_type"`
 	Token        string              `json:"token,omitempty"`
-	UserAddress  GetAdminUserAddress `json:"user_adddress"`
+	UserAddress  GetAdminUserAddress `json:"user_adddress,omitempty"`
 	CreatedAt    primitive.DateTime  `json:"created_at"`
 	UpdatedAt    primitive.DateTime  `json:"updated_at"`
 }

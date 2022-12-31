@@ -17,6 +17,7 @@ type UserAuthController interface {
 	CreateAdminUser(ctx *gin.Context)
 	AdminUserLogin(ctx *gin.Context)
 	GetUserById(ctx *gin.Context)
+	GetAllAdminUser(ctx *gin.Context)
 
 	AddAdminUserAddress(ctx *gin.Context)
 	GetAdminUserAdrress(ctx *gin.Context)
@@ -155,6 +156,19 @@ func (c *userauthcontroller) GetUserById(ctx *gin.Context) {
 	if err != nil {
 		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.USER_DATA, helper.EmptyObj{})
 		ctx.AbortWithStatusJSON(http.StatusUnprocessableEntity, response)
+		return
+	}
+
+	response := helper.BuildSuccessResponse(helper.FETCHED_SUCCESS, helper.USER_DATA, res)
+	ctx.JSON(http.StatusOK, response)
+}
+
+func (c *userauthcontroller) GetAllAdminUser(ctx *gin.Context) {
+	res, err := c.service.GetAllAdminUsers()
+
+	if err != nil {
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.USER_DATA, helper.EmptyObj{})
+		ctx.AbortWithStatusJSON(http.StatusForbidden, response)
 		return
 	}
 

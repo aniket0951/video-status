@@ -19,6 +19,7 @@ type UserAuthService interface {
 	CreateAdminUser(user dto.CreateAdminUserDTO) (dto.GetAdminUserDTO, error)
 	ValidateAdminUser(email string, pass string) (dto.GetAdminUserDTO, error)
 	GetUserById(adminId primitive.ObjectID) (dto.GetAdminUserDTO, error)
+	GetAllAdminUsers() ([]dto.GetAdminUserDTO, error)
 
 	AddAdminUserAddress(address dto.CreateAdminUserAddress) error
 	GetAdminUserAddress(userId primitive.ObjectID) (dto.GetAdminUserAddress, error)
@@ -116,6 +117,24 @@ func (ser *userauthservice) GetUserById(adminId primitive.ObjectID) (dto.GetAdmi
 
 	return adminUser, nil
 
+}
+
+func (ser *userauthservice) GetAllAdminUsers() ([]dto.GetAdminUserDTO, error) {
+	users, err := ser.repo.GetAllAdminUsers()
+
+	if err != nil {
+		return []dto.GetAdminUserDTO{}, err
+	}
+
+	adminUsers := []dto.GetAdminUserDTO{}
+
+	for i := range users {
+		temp := dto.GetAdminUserDTO{}
+		smapping.FillStruct(&temp, smapping.MapFields(users[i]))
+		adminUsers = append(adminUsers, temp)
+	}
+
+	return adminUsers, nil
 }
 
 func (ser *userauthservice) AddAdminUserAddress(address dto.CreateAdminUserAddress) error {

@@ -26,6 +26,7 @@ func UserAuthRouter(router *gin.Engine) {
 		userAuth.POST("/create-admin-user", userAuthCont.CreateAdminUser)
 		userAuth.POST("/admin-user-login", userAuthCont.AdminUserLogin)
 		userAuth.GET("/get-user-byID", middleware.AuthorizeJWT(jwtService), userAuthCont.GetUserById)
+		userAuth.GET("/get-admin-users", middleware.AuthorizeJWT(jwtService), userAuthCont.GetAllAdminUser)
 	}
 
 	adminUserAddress := router.Group("/api/address", middleware.AuthorizeJWT(jwtService))

@@ -20,6 +20,7 @@ type UserAuthRepository interface {
 	CreateEndUser(user models.Users) (models.Users, error)
 	CreateAdminUser(adminuser models.AdminUser) (models.AdminUser, error)
 	GetAdminUserById(adminId primitive.ObjectID) (models.AdminUser, error)
+	GetAllAdminUsers() ([]models.AdminUser, error)
 	ValidateAdminUser(email string) (models.AdminUser, error)
 	DuplicateMobile(mobile string) bool
 	DuplicateEmail(email string) (models.AdminUser, bool)
@@ -100,10 +101,25 @@ func (db *userauthrepository) CreateAdminUser(adminuser models.AdminUser) (model
 }
 
 func (db *userauthrepository) GetAdminUserById(adminId primitive.ObjectID) (models.AdminUser, error) {
-	fmt.Println("Admin ID ==> ", adminId)
+
 	filter := bson.D{
 		bson.E{Key: "_id", Value: adminId},
 	}
+
+	//pipline := []bson.M{
+	//	bson.M{
+	//		"$match": bson.M{
+	//			"_id": adminId,
+	//		},
+	//	},
+	//	bson.M{
+	//		"$lookup": bson.M{
+	//			"from": "user_address",
+	//			"localfield": "_id",
+	//			"foreignField": "user"
+	//		},
+	//	},
+	//}
 
 	ctx, cancel := db.Init()
 	defer cancel()
@@ -116,6 +132,26 @@ func (db *userauthrepository) GetAdminUserById(adminId primitive.ObjectID) (mode
 	}
 
 	return adminUser, nil
+}
+
+func (db *userauthrepository) GetAllAdminUsers() ([]models.AdminUser, error) {
+	ctx, cancel := db.Init()
+	defer cancel()
+
+	allAdminUsers := []models.AdminUser{}
+
+	cursor, curErr := db.userconnection.Find(ctx, bson.M{})
+
+	if curErr != nil {
+		return []models.AdminUser{}, curErr
+	}
+
+	if err := cursor.All(context.TODO(), &allAdminUsers); err != nil {
+		return []models.AdminUser{}, err
+	}
+
+	return allAdminUsers, nil
+
 }
 
 func (db *userauthrepository) ValidateAdminUser(email string) (models.AdminUser, error) {
