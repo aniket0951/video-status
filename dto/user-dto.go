@@ -29,15 +29,14 @@ type AdminLoginDTO struct {
 }
 
 type GetAdminUserDTO struct {
-	ID           primitive.ObjectID  `json:"id,omitempty"`
-	UserName     string              `json:"username"`
-	MobileNumber string              `json:"mobile"`
-	Email        string              `json:"email" `
-	UserType     string              `json:"user_type"`
-	Token        string              `json:"token,omitempty"`
-	UserAddress  GetAdminUserAddress `json:"user_adddress,omitempty"`
-	CreatedAt    primitive.DateTime  `json:"created_at"`
-	UpdatedAt    primitive.DateTime  `json:"updated_at"`
+	ID           primitive.ObjectID `json:"id,omitempty"`
+	UserName     string             `json:"username"`
+	MobileNumber string             `json:"mobile"`
+	Email        string             `json:"email" `
+	UserType     string             `json:"user_type"`
+	Token        string             `json:"token,omitempty"`
+	CreatedAt    primitive.DateTime `json:"created_at"`
+	UpdatedAt    primitive.DateTime `json:"updated_at"`
 }
 
 type CreateAdminUserAddress struct {

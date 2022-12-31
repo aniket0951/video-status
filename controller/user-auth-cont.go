@@ -17,6 +17,7 @@ type UserAuthController interface {
 	CreateAdminUser(ctx *gin.Context)
 	AdminUserLogin(ctx *gin.Context)
 	GetUserById(ctx *gin.Context)
+	DeleteAdminUser(ctx *gin.Context)
 	GetAllAdminUser(ctx *gin.Context)
 	UpdateAdminUser(ctx *gin.Context)
 
@@ -168,22 +169,6 @@ func (c *userauthcontroller) UpdateAdminUser(ctx *gin.Context) {
 	userToUpdate := dto.UpdateAdminUserDTO{}
 	ctx.BindJSON(&userToUpdate)
 
-	userId, err := primitive.ObjectIDFromHex(helper.USER_ID)
-
-	if err != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.USER_DATA, helper.EmptyObj{})
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
-		return
-	}
-
-	if !primitive.IsValidObjectID(helper.USER_ID) {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, helper.INVALID_ID, helper.USER_DATA, helper.EmptyObj{})
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
-		return
-	}
-
-	userToUpdate.ID = userId
-
 	if (userToUpdate == dto.UpdateAdminUserDTO{}) {
 		helper.RequestBodyEmptyResponse(ctx)
 		return
@@ -206,6 +191,41 @@ func (c *userauthcontroller) UpdateAdminUser(ctx *gin.Context) {
 	response := helper.BuildSuccessResponse(helper.UPDATE_SUCCESS, helper.USER_DATA, helper.EmptyObj{})
 	ctx.JSON(http.StatusOK, response)
 	return
+}
+
+func (c *userauthcontroller) DeleteAdminUser(ctx *gin.Context) {
+	userId := ctx.Request.URL.Query().Get("userId")
+
+	if userId == "" {
+		helper.RequestBodyEmptyResponse(ctx)
+		return
+	}
+
+	if !primitive.IsValidObjectID(userId) {
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, helper.INVALID_ID, helper.USER_DATA, helper.EmptyObj{})
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
+	}
+
+	objId, objErr := primitive.ObjectIDFromHex(userId)
+
+	if objErr != nil {
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, objErr.Error(), helper.USER_DATA, helper.EmptyObj{})
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
+	}
+
+	err := c.service.DeleteAdminUser(objId)
+
+	if err != nil {
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.USER_DATA, helper.EmptyObj{})
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
+	}
+
+	response := helper.BuildSuccessResponse(helper.DELETE_SUCCESS, helper.USER_DATA, helper.EmptyObj{})
+	ctx.JSON(http.StatusOK, response)
+
 }
 
 func (c *userauthcontroller) GetAllAdminUser(ctx *gin.Context) {

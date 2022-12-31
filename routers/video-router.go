@@ -24,7 +24,7 @@ func VideoRouter(route *gin.Engine) {
 		videoCategory.DELETE("/delete-category", videoController.DeleteCategory)
 	}
 
-	videos := route.Group("/api/videos")
+	videos := route.Group("/api/videos", middleware.AuthorizeJWT(jwtService))
 	{
 		videos.POST("/add-video", videoController.AddVideo)
 		videos.GET("/get-all-videos", videoController.GetAllVideos)

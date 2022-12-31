@@ -19,6 +19,7 @@ type UserAuthService interface {
 	CreateAdminUser(user dto.CreateAdminUserDTO) (dto.GetAdminUserDTO, error)
 	ValidateAdminUser(email string, pass string) (dto.GetAdminUserDTO, error)
 	GetUserById(adminId primitive.ObjectID) (dto.GetAdminUserDTO, error)
+	DeleteAdminUser(userId primitive.ObjectID) error
 	GetAllAdminUsers() ([]dto.GetAdminUserDTO, error)
 	UpdateAdminUserInfo(adminUser dto.UpdateAdminUserDTO) error
 
@@ -118,6 +119,10 @@ func (ser *userauthservice) GetUserById(adminId primitive.ObjectID) (dto.GetAdmi
 
 	return adminUser, nil
 
+}
+
+func (ser *userauthservice) DeleteAdminUser(userId primitive.ObjectID) error {
+	return ser.repo.DeleteAdminUser(userId)
 }
 
 func (ser *userauthservice) GetAllAdminUsers() ([]dto.GetAdminUserDTO, error) {
