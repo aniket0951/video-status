@@ -23,3 +23,11 @@ type Videos struct {
 	CreatedAt         primitive.DateTime `json:"created_at" bson:"created_at"`
 	UpdatedAt         primitive.DateTime `json:"updated_at" bson:"updated_at"`
 }
+
+type UserVideos struct {
+	ID        primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	VideoId   primitive.ObjectID `json:"videoId" bson:"video_id"`
+	UserId    primitive.ObjectID `json:"userId" bson:"user_id"`
+	CreatedAt primitive.DateTime `json:"created_at" bson:"created_at"`
+	UpdatedAt primitive.DateTime `json:"updated_at" bson:"updated_at"`
+}
