@@ -27,6 +27,8 @@ func UserAuthRouter(router *gin.Engine) {
 		userAuth.POST("/admin-user-login", userAuthCont.AdminUserLogin)
 		userAuth.GET("/get-user-byID", middleware.AuthorizeJWT(jwtService), userAuthCont.GetUserById)
 		userAuth.GET("/get-admin-users", middleware.AuthorizeJWT(jwtService), userAuthCont.GetAllAdminUser)
+		userAuth.PUT("/update-admin-user", middleware.AuthorizeJWT(jwtService), userAuthCont.UpdateAdminUser)
+		userAuth.DELETE("/delete-admin-user", middleware.AuthorizeJWT(jwtService), userAuthCont.DeleteAdminUser)
 	}
 
 	adminUserAddress := router.Group("/api/address", middleware.AuthorizeJWT(jwtService))

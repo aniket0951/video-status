@@ -3,8 +3,10 @@ package repositories
 import (
 	"context"
 	"errors"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"io/ioutil"
 	"mime/multipart"
+	"os"
 	"path"
 	"time"
 
@@ -23,11 +25,13 @@ type VideoRepository interface {
 	CreateCategory(categories models.VideoCategories) (models.VideoCategories, error)
 	UpdateCategory(categories models.VideoCategories) (models.VideoCategories, error)
 	GetAllCategory() ([]models.VideoCategories, error)
+	GetCategoryById(catId primitive.ObjectID) (models.VideoCategories, error)
 	DeleteCategory(categoryId primitive.ObjectID) error
 	DuplicateCategory(categoryName string) (bool, error)
 
 	AddVideo(video models.Videos, file multipart.File) error
 	GetAllVideos() ([]models.Videos, error)
+	GetVideoByID(videoId primitive.ObjectID) (models.Videos, error)
 	UpdateVideo(video models.Videos) error
 	DeleteVideo(videoId primitive.ObjectID) error
 
@@ -121,6 +125,25 @@ func (db *videocategoriesrepo) GetAllCategory() ([]models.VideoCategories, error
 	return result, nil
 }
 
+func (db *videocategoriesrepo) GetCategoryById(catId primitive.ObjectID) (models.VideoCategories, error) {
+	filter := bson.D{
+		bson.E{Key: "_id", Value: catId},
+	}
+
+	ctx, cancel := db.Init()
+	defer cancel()
+
+	videoCategory := models.VideoCategories{}
+
+	res := db.collection.FindOne(ctx, filter).Decode(&videoCategory)
+
+	if res == mongo.ErrNoDocuments {
+		return models.VideoCategories{}, errors.New("video category not found")
+	}
+
+	return videoCategory, nil
+}
+
 func (db *videocategoriesrepo) DeleteCategory(categoryId primitive.ObjectID) error {
 
 	filter := bson.D{
@@ -186,7 +209,7 @@ func (db *videocategoriesrepo) AddVideo(video models.Videos, file multipart.File
 	defer file.Close()
 	defer tempFile.Close()
 
-	video.VideoPath = "/" + path.Base(tempFile.Name())
+	video.VideoPath = path.Base(tempFile.Name())
 
 	ctx, cancel := db.Init()
 	defer cancel()
@@ -204,7 +227,9 @@ func (db *videocategoriesrepo) GetAllVideos() ([]models.Videos, error) {
 	ctx, cancel := db.Init()
 	defer cancel()
 
-	cursor, curErr := db.videoscollection.Find(ctx, bson.M{})
+	queryOptions := options.Find().SetSort(bson.D{{"_id", -1}})
+
+	cursor, curErr := db.videoscollection.Find(ctx, bson.M{}, queryOptions)
 
 	if curErr != nil {
 		return []models.Videos{}, curErr
@@ -246,7 +271,31 @@ func (db *videocategoriesrepo) UpdateVideo(video models.Videos) error {
 	return nil
 }
 
+func (db *videocategoriesrepo) GetVideoByID(videoId primitive.ObjectID) (models.Videos, error) {
+	filter := bson.D{
+		bson.E{Key: "_id", Value: videoId},
+	}
+
+	ctx, cancel := db.Init()
+	defer cancel()
+
+	video := models.Videos{}
+
+	res := db.videoscollection.FindOne(ctx, filter).Decode(&video)
+	if res == mongo.ErrNoDocuments {
+		return models.Videos{}, errors.New("video not found for delete")
+	}
+
+	return video, nil
+}
+
 func (db *videocategoriesrepo) DeleteVideo(videoId primitive.ObjectID) error {
+	video, err := db.GetVideoByID(videoId)
+
+	if err != nil {
+		return err
+	}
+
 	ctx, cancel := db.Init()
 	defer cancel()
 
@@ -264,5 +313,7 @@ func (db *videocategoriesrepo) DeleteVideo(videoId primitive.ObjectID) error {
 		return errors.New("failed to delete the video")
 	}
 
-	return nil
+	fileRemoveErr := os.Remove(video.VideoPath)
+
+	return fileRemoveErr
 }

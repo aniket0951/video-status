@@ -19,7 +19,9 @@ type UserAuthService interface {
 	CreateAdminUser(user dto.CreateAdminUserDTO) (dto.GetAdminUserDTO, error)
 	ValidateAdminUser(email string, pass string) (dto.GetAdminUserDTO, error)
 	GetUserById(adminId primitive.ObjectID) (dto.GetAdminUserDTO, error)
+	DeleteAdminUser(userId primitive.ObjectID) error
 	GetAllAdminUsers() ([]dto.GetAdminUserDTO, error)
+	UpdateAdminUserInfo(adminUser dto.UpdateAdminUserDTO) error
 
 	AddAdminUserAddress(address dto.CreateAdminUserAddress) error
 	GetAdminUserAddress(userId primitive.ObjectID) (dto.GetAdminUserAddress, error)
@@ -119,6 +121,10 @@ func (ser *userauthservice) GetUserById(adminId primitive.ObjectID) (dto.GetAdmi
 
 }
 
+func (ser *userauthservice) DeleteAdminUser(userId primitive.ObjectID) error {
+	return ser.repo.DeleteAdminUser(userId)
+}
+
 func (ser *userauthservice) GetAllAdminUsers() ([]dto.GetAdminUserDTO, error) {
 	users, err := ser.repo.GetAllAdminUsers()
 
@@ -188,6 +194,16 @@ func (ser *userauthservice) UpdateAdminAddress(address dto.UpdateAdminAddressDTO
 	upErr := ser.repo.UpdateAdminAddress(addressToUpdate)
 
 	return upErr
+}
+
+func (ser *userauthservice) UpdateAdminUserInfo(adminUser dto.UpdateAdminUserDTO) error {
+	userToUpdate := models.AdminUser{}
+
+	if smpErr := smapping.FillStruct(&userToUpdate, smapping.MapFields(adminUser)); smpErr != nil {
+		return smpErr
+	}
+
+	return ser.repo.UpdateAdminUserInfo(userToUpdate)
 }
 
 func comparePassword(hashedPwd string, plainPassword []byte) bool {

@@ -20,6 +20,8 @@ type UserAuthRepository interface {
 	CreateEndUser(user models.Users) (models.Users, error)
 	CreateAdminUser(adminuser models.AdminUser) (models.AdminUser, error)
 	GetAdminUserById(adminId primitive.ObjectID) (models.AdminUser, error)
+	UpdateAdminUserInfo(adminuser models.AdminUser) error
+	DeleteAdminUser(userId primitive.ObjectID) error
 	GetAllAdminUsers() ([]models.AdminUser, error)
 	ValidateAdminUser(email string) (models.AdminUser, error)
 	DuplicateMobile(mobile string) bool
@@ -106,21 +108,6 @@ func (db *userauthrepository) GetAdminUserById(adminId primitive.ObjectID) (mode
 		bson.E{Key: "_id", Value: adminId},
 	}
 
-	//pipline := []bson.M{
-	//	bson.M{
-	//		"$match": bson.M{
-	//			"_id": adminId,
-	//		},
-	//	},
-	//	bson.M{
-	//		"$lookup": bson.M{
-	//			"from": "user_address",
-	//			"localfield": "_id",
-	//			"foreignField": "user"
-	//		},
-	//	},
-	//}
-
 	ctx, cancel := db.Init()
 	defer cancel()
 	var adminUser models.AdminUser
@@ -132,6 +119,33 @@ func (db *userauthrepository) GetAdminUserById(adminId primitive.ObjectID) (mode
 	}
 
 	return adminUser, nil
+}
+
+func (db *userauthrepository) UpdateAdminUserInfo(adminuser models.AdminUser) error {
+	update := bson.D{
+		bson.E{Key: "$set", Value: bson.D{
+			bson.E{Key: "username", Value: adminuser.UserName},
+			bson.E{Key: "contact", Value: adminuser.MobileNumber},
+			bson.E{Key: "email", Value: adminuser.Email},
+			bson.E{Key: "user_type", Value: adminuser.UserType},
+			bson.E{Key: "updated_at", Value: primitive.NewDateTimeFromTime(time.Now())},
+		}},
+	}
+
+	ctx, cancel := db.Init()
+	defer cancel()
+
+	res, err := db.userconnection.UpdateByID(ctx, adminuser.ID, update)
+
+	if err != nil {
+		return err
+	}
+
+	if res.MatchedCount == 0 {
+		return errors.New("user not found for update")
+	}
+
+	return nil
 }
 
 func (db *userauthrepository) GetAllAdminUsers() ([]models.AdminUser, error) {
@@ -152,6 +166,24 @@ func (db *userauthrepository) GetAllAdminUsers() ([]models.AdminUser, error) {
 
 	return allAdminUsers, nil
 
+}
+
+func (db *userauthrepository) DeleteAdminUser(userId primitive.ObjectID) error {
+	ctx, cancel := db.Init()
+
+	defer cancel()
+
+	filter := bson.D{
+		bson.E{Key: "_id", Value: userId},
+	}
+
+	res := db.userconnection.FindOneAndDelete(ctx, filter)
+
+	if res.Err() == mongo.ErrNoDocuments {
+		return res.Err()
+	}
+
+	return nil
 }
 
 func (db *userauthrepository) ValidateAdminUser(email string) (models.AdminUser, error) {

@@ -2,13 +2,12 @@ package services
 
 import (
 	"errors"
-	"mime/multipart"
-
 	"github.com/aniket0951/Chatrapati-Maharaj/dto"
 	"github.com/aniket0951/Chatrapati-Maharaj/models"
 	"github.com/aniket0951/Chatrapati-Maharaj/repositories"
 	"github.com/mashingan/smapping"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"mime/multipart"
 )
 
 type VideoService interface {
@@ -116,6 +115,12 @@ func (ser *videocategoriesservice) AddVideo(video dto.CreateVideosDTO, file mult
 		return smpErr
 	}
 
+	_, isCatErr := ser.repo.GetCategoryById(videoToCreate.VideoCategoriesID)
+
+	if isCatErr != nil {
+		return isCatErr
+	}
+
 	err := ser.repo.AddVideo(videoToCreate, file)
 	if err != nil {
 		return err
@@ -140,8 +145,7 @@ func (ser *videocategoriesservice) GetAllVideos() ([]dto.GetVideosDTO, error) {
 	for i := range res {
 		temp := dto.GetVideosDTO{}
 		smapping.FillStruct(&temp, smapping.MapFields(res[i]))
-
-		videoPath := "http://localhost:5000/static/" + temp.VideoPath
+		videoPath := "http://localhost:5000/" + temp.VideoPath
 		temp.VideoPath = videoPath
 		allVideos = append(allVideos, temp)
 	}
