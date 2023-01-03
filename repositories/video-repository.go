@@ -31,7 +31,7 @@ type VideoRepository interface {
 	DeleteCategory(categoryId primitive.ObjectID) error
 	DuplicateCategory(categoryName string) (bool, error)
 
-	AddVideo(video models.Videos, file multipart.File) error
+	AddVideo(video models.Videos, file multipart.File) (*mongo.InsertOneResult, error)
 	GetAllVideos() ([]models.Videos, error)
 	GetVideoByID(videoId primitive.ObjectID) (models.Videos, error)
 	UpdateVideo(video models.Videos) error
@@ -117,7 +117,7 @@ func (db *videocategoriesrepo) GetAllCategory() ([]models.VideoCategories, error
 		return []models.VideoCategories{}, curErr
 	}
 
-	result := []models.VideoCategories{}
+	var result []models.VideoCategories
 	err := cursor.All(ctx, &result)
 
 	if err != nil {
@@ -187,7 +187,7 @@ func (db *videocategoriesrepo) DuplicateCategory(categoryName string) (bool, err
 
 }
 
-func (db *videocategoriesrepo) AddVideo(video models.Videos, file multipart.File) error {
+func (db *videocategoriesrepo) AddVideo(video models.Videos, file multipart.File) (*mongo.InsertOneResult, error) {
 
 	video.ID = primitive.NewObjectID()
 	video.CreatedAt = primitive.NewDateTimeFromTime(time.Now())
@@ -196,7 +196,7 @@ func (db *videocategoriesrepo) AddVideo(video models.Videos, file multipart.File
 	tempFile, err := ioutil.TempFile("static", "upload-*.mp4")
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	defer tempFile.Close()
@@ -204,7 +204,7 @@ func (db *videocategoriesrepo) AddVideo(video models.Videos, file multipart.File
 	fileBytes, fileReader := ioutil.ReadAll(file)
 
 	if fileReader != nil {
-		return fileReader
+		return nil, fileReader
 	}
 
 	tempFile.Write(fileBytes)
@@ -216,13 +216,13 @@ func (db *videocategoriesrepo) AddVideo(video models.Videos, file multipart.File
 	ctx, cancel := db.Init()
 	defer cancel()
 
-	_, insErr := db.videoscollection.InsertOne(ctx, &video)
+	res, insErr := db.videoscollection.InsertOne(ctx, &video)
 
 	if insErr != nil {
-		return insErr
+		return nil, insErr
 	}
 
-	return nil
+	return res, nil
 }
 
 func (db *videocategoriesrepo) GetAllVideos() ([]models.Videos, error) {

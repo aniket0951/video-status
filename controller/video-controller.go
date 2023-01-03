@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -25,12 +26,14 @@ type VideoController interface {
 }
 
 type videocontroller struct {
-	service services.VideoService
+	service          services.VideoService
+	userVideoService services.UserVideoService
 }
 
-func NewVideoController(ser services.VideoService) VideoController {
+func NewVideoController(ser services.VideoService, userVideoServ services.UserVideoService) VideoController {
 	return &videocontroller{
-		service: ser,
+		service:          ser,
+		userVideoService: userVideoServ,
 	}
 }
 
@@ -166,12 +169,27 @@ func (c *videocontroller) AddVideo(ctx *gin.Context) {
 		return
 	}
 
-	err := c.service.AddVideo(videoToCreate, file)
+	res, err := c.service.AddVideo(videoToCreate, file)
 
 	if err != nil {
 		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.VIDEO_DATA, helper.EmptyObj{})
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
+	}
+
+	strId := fmt.Sprintf("%v", res.InsertedID)
+
+	fmt.Println("strId ==> ", strId)
+
+	videoID, idErr := primitive.ObjectIDFromHex(strId)
+
+	if idErr != nil {
+		fmt.Println(idErr.Error())
+	}
+
+	userErr := c.userVideoService.AddUserVideo(videoID)
+	if userErr != nil {
+		fmt.Println(userErr.Error())
 	}
 
 	response := helper.BuildSuccessResponse(helper.DATA_INSERTED, helper.VIDEO_DATA, helper.EmptyObj{})

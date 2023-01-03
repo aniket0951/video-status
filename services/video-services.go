@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"go.mongodb.org/mongo-driver/mongo"
 	"mime/multipart"
 	"strings"
 
@@ -12,6 +13,10 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+var (
+	userVideoRepo repositories.UserVideoRepository = repositories.NewUserVideoRepository()
+)
+
 type VideoService interface {
 	CreateCategory(category dto.CreateVideoCategoriesDTO) (dto.GetVideoCategoriesDTO, error)
 	UpdateCategory(category dto.CreateVideoCategoriesDTO) (dto.GetVideoCategoriesDTO, error)
@@ -19,19 +24,21 @@ type VideoService interface {
 	DeleteCategory(categoryId primitive.ObjectID) error
 	DuplicateCategory(categoryName string) (bool, error)
 
-	AddVideo(video dto.CreateVideosDTO, file multipart.File) error
+	AddVideo(video dto.CreateVideosDTO, file multipart.File) (*mongo.InsertOneResult, error)
 	GetAllVideos() ([]dto.GetVideosDTO, error)
 	UpdateVideo(video dto.UpdateVideoDTO) error
 	DeleteVideo(videoId primitive.ObjectID) error
 }
 
 type videocategoriesservice struct {
-	repo repositories.VideoRepository
+	repo          repositories.VideoRepository
+	userVideoRepo repositories.UserVideoRepository
 }
 
 func NewVideoCategoriesService(repo repositories.VideoRepository) VideoService {
 	return &videocategoriesservice{
-		repo: repo,
+		repo:          repo,
+		userVideoRepo: userVideoRepo,
 	}
 }
 
@@ -110,25 +117,25 @@ func (ser *videocategoriesservice) DuplicateCategory(categoryName string) (bool,
 	return ser.repo.DuplicateCategory(categoryName)
 }
 
-func (ser *videocategoriesservice) AddVideo(video dto.CreateVideosDTO, file multipart.File) error {
+func (ser *videocategoriesservice) AddVideo(video dto.CreateVideosDTO, file multipart.File) (*mongo.InsertOneResult, error) {
 	videoToCreate := models.Videos{}
 
 	if smpErr := smapping.FillStruct(&videoToCreate, smapping.MapFields(video)); smpErr != nil {
-		return smpErr
+		return nil, smpErr
 	}
 
 	_, isCatErr := ser.repo.GetCategoryById(videoToCreate.VideoCategoriesID)
 
 	if isCatErr != nil {
-		return isCatErr
+		return nil, isCatErr
 	}
 
-	err := ser.repo.AddVideo(videoToCreate, file)
+	res, err := ser.repo.AddVideo(videoToCreate, file)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return res, nil
 }
 
 func (ser *videocategoriesservice) GetAllVideos() ([]dto.GetVideosDTO, error) {
