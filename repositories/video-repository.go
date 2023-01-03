@@ -3,12 +3,14 @@ package repositories
 import (
 	"context"
 	"errors"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"io/ioutil"
 	"mime/multipart"
 	"os"
 	"path"
+	"strings"
 	"time"
+
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	dbconfig "github.com/aniket0951/Chatrapati-Maharaj/db-config"
 	"github.com/aniket0951/Chatrapati-Maharaj/helper"
@@ -291,7 +293,6 @@ func (db *videocategoriesrepo) GetVideoByID(videoId primitive.ObjectID) (models.
 
 func (db *videocategoriesrepo) DeleteVideo(videoId primitive.ObjectID) error {
 	video, err := db.GetVideoByID(videoId)
-
 	if err != nil {
 		return err
 	}
@@ -313,7 +314,13 @@ func (db *videocategoriesrepo) DeleteVideo(videoId primitive.ObjectID) error {
 		return errors.New("failed to delete the video")
 	}
 
-	fileRemoveErr := os.Remove(video.VideoPath)
+	var fileRemoveErr error
+
+	if strings.Contains(video.VideoPath, "static") {
+		fileRemoveErr = os.Remove(video.VideoPath)
+	} else {
+		fileRemoveErr = os.Remove("static/" + video.VideoPath)
+	}
 
 	return fileRemoveErr
 }

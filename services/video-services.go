@@ -2,12 +2,14 @@ package services
 
 import (
 	"errors"
+	"mime/multipart"
+	"strings"
+
 	"github.com/aniket0951/Chatrapati-Maharaj/dto"
 	"github.com/aniket0951/Chatrapati-Maharaj/models"
 	"github.com/aniket0951/Chatrapati-Maharaj/repositories"
 	"github.com/mashingan/smapping"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"mime/multipart"
 )
 
 type VideoService interface {
@@ -145,7 +147,13 @@ func (ser *videocategoriesservice) GetAllVideos() ([]dto.GetVideosDTO, error) {
 	for i := range res {
 		temp := dto.GetVideosDTO{}
 		smapping.FillStruct(&temp, smapping.MapFields(res[i]))
-		videoPath := "http://localhost:5000/" + temp.VideoPath
+		videoPath := ""
+		if strings.Contains(temp.VideoPath, "static") {
+			videoPath = "http://localhost:5000/" + temp.VideoPath
+		} else {
+			videoPath = "http://localhost:5000/static/" + temp.VideoPath
+		}
+
 		temp.VideoPath = videoPath
 		allVideos = append(allVideos, temp)
 	}
