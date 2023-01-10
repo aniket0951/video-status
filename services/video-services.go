@@ -2,7 +2,6 @@ package services
 
 import (
 	"errors"
-	"go.mongodb.org/mongo-driver/mongo"
 	"mime/multipart"
 	"strings"
 
@@ -24,10 +23,12 @@ type VideoService interface {
 	DeleteCategory(categoryId primitive.ObjectID) error
 	DuplicateCategory(categoryName string) (bool, error)
 
-	AddVideo(video dto.CreateVideosDTO, file multipart.File) (*mongo.InsertOneResult, error)
+	AddVideo(video dto.CreateVideosDTO, file multipart.File) (primitive.ObjectID, error)
 	GetAllVideos() ([]dto.GetVideosDTO, error)
 	UpdateVideo(video dto.UpdateVideoDTO) error
 	DeleteVideo(videoId primitive.ObjectID) error
+
+	VideoFullDetails(videoId primitive.ObjectID) (interface{}, error)
 }
 
 type videocategoriesservice struct {
@@ -117,22 +118,22 @@ func (ser *videocategoriesservice) DuplicateCategory(categoryName string) (bool,
 	return ser.repo.DuplicateCategory(categoryName)
 }
 
-func (ser *videocategoriesservice) AddVideo(video dto.CreateVideosDTO, file multipart.File) (*mongo.InsertOneResult, error) {
+func (ser *videocategoriesservice) AddVideo(video dto.CreateVideosDTO, file multipart.File) (primitive.ObjectID, error) {
 	videoToCreate := models.Videos{}
 
 	if smpErr := smapping.FillStruct(&videoToCreate, smapping.MapFields(video)); smpErr != nil {
-		return nil, smpErr
+		return primitive.NewObjectID(), smpErr
 	}
 
 	_, isCatErr := ser.repo.GetCategoryById(videoToCreate.VideoCategoriesID)
 
 	if isCatErr != nil {
-		return nil, isCatErr
+		return primitive.NewObjectID(), isCatErr
 	}
 
 	res, err := ser.repo.AddVideo(videoToCreate, file)
 	if err != nil {
-		return nil, err
+		return primitive.NewObjectID(), err
 	}
 
 	return res, nil
@@ -183,4 +184,8 @@ func (ser *videocategoriesservice) DeleteVideo(videoId primitive.ObjectID) error
 	err := ser.repo.DeleteVideo(videoId)
 
 	return err
+}
+
+func (ser *videocategoriesservice) VideoFullDetails(videoId primitive.ObjectID) (interface{}, error) {
+	return ser.repo.VideoFullDetails(videoId)
 }

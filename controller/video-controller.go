@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -23,6 +24,8 @@ type VideoController interface {
 	GetAllVideos(ctx *gin.Context)
 	UpdateVideo(ctx *gin.Context)
 	DeleteVideo(ctx *gin.Context)
+
+	VideoFullDetails(ctx *gin.Context)
 }
 
 type videocontroller struct {
@@ -177,17 +180,7 @@ func (c *videocontroller) AddVideo(ctx *gin.Context) {
 		return
 	}
 
-	strId := fmt.Sprintf("%v", res.InsertedID)
-
-	fmt.Println("strId ==> ", strId)
-
-	videoID, idErr := primitive.ObjectIDFromHex(strId)
-
-	if idErr != nil {
-		fmt.Println(idErr.Error())
-	}
-
-	userErr := c.userVideoService.AddUserVideo(videoID)
+	userErr := c.userVideoService.AddUserVideo(res)
 	if userErr != nil {
 		fmt.Println(userErr.Error())
 	}
@@ -266,4 +259,36 @@ func (c *videocontroller) DeleteVideo(ctx *gin.Context) {
 
 	response := helper.BuildSuccessResponse(helper.DELETE_SUCCESS, helper.VIDEO_DATA, helper.EmptyObj{})
 	ctx.JSON(http.StatusOK, response)
+}
+
+func (c *videocontroller) VideoFullDetails(ctx *gin.Context) {
+	videoId := ctx.Request.URL.Query().Get("video_id")
+
+	if videoId == "" {
+		helper.RequestBodyEmptyResponse(ctx)
+		return
+	}
+
+	if !primitive.IsValidObjectID(videoId) {
+		helper.BuildUnprocessableEntityResponse(ctx, errors.New("invalid input passed"))
+		return
+	}
+
+	objId, objErr := primitive.ObjectIDFromHex(videoId)
+
+	if objErr != nil {
+		helper.BuildUnprocessableEntityResponse(ctx, objErr)
+		return
+	}
+
+	res, err := c.service.VideoFullDetails(objId)
+
+	if err != nil {
+		helper.BuildUnprocessableEntityResponse(ctx, err)
+		return
+	}
+
+	response := helper.BuildSuccessResponse(helper.FETCHED_SUCCESS, helper.VIDEO_DATA, res)
+	ctx.JSON(http.StatusOK, response)
+
 }

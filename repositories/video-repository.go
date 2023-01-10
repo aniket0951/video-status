@@ -10,8 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"go.mongodb.org/mongo-driver/mongo/options"
-
 	dbconfig "github.com/aniket0951/Chatrapati-Maharaj/db-config"
 	"github.com/aniket0951/Chatrapati-Maharaj/helper"
 	"github.com/aniket0951/Chatrapati-Maharaj/models"
@@ -31,24 +29,28 @@ type VideoRepository interface {
 	DeleteCategory(categoryId primitive.ObjectID) error
 	DuplicateCategory(categoryName string) (bool, error)
 
-	AddVideo(video models.Videos, file multipart.File) (*mongo.InsertOneResult, error)
+	AddVideo(video models.Videos, file multipart.File) (primitive.ObjectID, error)
 	GetAllVideos() ([]models.Videos, error)
 	GetVideoByID(videoId primitive.ObjectID) (models.Videos, error)
 	UpdateVideo(video models.Videos) error
 	DeleteVideo(videoId primitive.ObjectID) error
 
+	VideoFullDetails(videoId primitive.ObjectID) (interface{}, error)
+
 	Init() (context.Context, context.CancelFunc)
 }
 
 type videocategoriesrepo struct {
-	collection       *mongo.Collection
-	videoscollection *mongo.Collection
+	collection          *mongo.Collection
+	videoscollection    *mongo.Collection
+	userVideoConnection *mongo.Collection
 }
 
 func NewVideoCategoriesRepository() VideoRepository {
 	return &videocategoriesrepo{
-		collection:       videoCategoryCollection,
-		videoscollection: videosCollection,
+		collection:          videoCategoryCollection,
+		videoscollection:    videosCollection,
+		userVideoConnection: userVideoCollection,
 	}
 }
 
@@ -187,7 +189,7 @@ func (db *videocategoriesrepo) DuplicateCategory(categoryName string) (bool, err
 
 }
 
-func (db *videocategoriesrepo) AddVideo(video models.Videos, file multipart.File) (*mongo.InsertOneResult, error) {
+func (db *videocategoriesrepo) AddVideo(video models.Videos, file multipart.File) (primitive.ObjectID, error) {
 
 	video.ID = primitive.NewObjectID()
 	video.CreatedAt = primitive.NewDateTimeFromTime(time.Now())
@@ -196,7 +198,7 @@ func (db *videocategoriesrepo) AddVideo(video models.Videos, file multipart.File
 	tempFile, err := ioutil.TempFile("static", "upload-*.mp4")
 
 	if err != nil {
-		return nil, err
+		return primitive.NewObjectID(), err
 	}
 
 	defer tempFile.Close()
@@ -204,7 +206,7 @@ func (db *videocategoriesrepo) AddVideo(video models.Videos, file multipart.File
 	fileBytes, fileReader := ioutil.ReadAll(file)
 
 	if fileReader != nil {
-		return nil, fileReader
+		return primitive.NewObjectID(), fileReader
 	}
 
 	tempFile.Write(fileBytes)
@@ -216,33 +218,41 @@ func (db *videocategoriesrepo) AddVideo(video models.Videos, file multipart.File
 	ctx, cancel := db.Init()
 	defer cancel()
 
-	res, insErr := db.videoscollection.InsertOne(ctx, &video)
+	_, insErr := db.videoscollection.InsertOne(ctx, &video)
 
 	if insErr != nil {
-		return nil, insErr
+		return primitive.NewObjectID(), insErr
 	}
 
-	return res, nil
+	return video.ID, nil
 }
 
 func (db *videocategoriesrepo) GetAllVideos() ([]models.Videos, error) {
-	ctx, cancel := db.Init()
-	defer cancel()
 
-	queryOptions := options.Find().SetSort(bson.D{{"_id", -1}})
+	filter := []bson.M{
+		bson.M{
+			"$match": bson.M{
+				"is_active": true,
+			},
+		},
 
-	cursor, curErr := db.videoscollection.Find(ctx, bson.M{}, queryOptions)
+		{"$sort": bson.M{"_id": -1}},
+		{"$limit": 5},
+	}
+
+	cursor, curErr := db.videoscollection.Aggregate(context.TODO(), filter)
 
 	if curErr != nil {
 		return []models.Videos{}, curErr
 	}
 
-	videos := []models.Videos{}
+	var videos []models.Videos
 
-	if err := cursor.All(ctx, &videos); err != nil {
+	if err := cursor.All(context.TODO(), &videos); err != nil {
 		return []models.Videos{}, err
 	}
 
+	//fmt.Printf("%v\n", newData)
 	return videos, nil
 }
 
@@ -323,4 +333,44 @@ func (db *videocategoriesrepo) DeleteVideo(videoId primitive.ObjectID) error {
 	}
 
 	return fileRemoveErr
+}
+
+func (db *videocategoriesrepo) VideoFullDetails(videoId primitive.ObjectID) (interface{}, error) {
+	filter := []bson.M{
+		bson.M{
+			"$match": bson.M{
+				"video_id": videoId,
+			},
+		},
+		bson.M{
+			"$lookup": bson.M{
+				"from":         "users",
+				"localField":   "user_id",
+				"foreignField": "_id",
+				"as":           "user_data",
+			},
+		},
+		bson.M{
+			"$lookup": bson.M{
+				"from":         "videos",
+				"localField":   "video_id",
+				"foreignField": "_id",
+				"as":           "video_data",
+			},
+		},
+	}
+
+	cursor, curErr := db.userVideoConnection.Aggregate(context.TODO(), filter)
+
+	if curErr != nil {
+		return nil, curErr
+	}
+
+	var videoDetail []bson.M
+
+	if err := cursor.All(context.TODO(), &videoDetail); err != nil {
+		return nil, err
+	}
+
+	return videoDetail, nil
 }

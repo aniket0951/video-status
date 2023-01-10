@@ -33,4 +33,9 @@ func VideoRouter(route *gin.Engine) {
 		videos.PUT("/update-video", videoController.UpdateVideo)
 		videos.DELETE("/delete-video", videoController.DeleteVideo)
 	}
+
+	videoFullDetails := route.Group("/api/video-detail", middleware.AuthorizeJWT(jwtService))
+	{
+		videoFullDetails.GET("/video-full-details", videoController.VideoFullDetails)
+	}
 }
