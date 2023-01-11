@@ -42,6 +42,7 @@ func main() {
 
 	routers.UserAuthRouter(router)
 	routers.VideoRouter(router)
+	routers.VideoVerificationRoute(router)
 
 	router.Run(":5000")
 }

@@ -29,10 +29,10 @@ var MOBILE_EXITS = "mobile number already exit please try again with another mob
 var EMAIL_EXITS = "email already exits"
 var DELETE_SUCCESS = "delete successfully"
 
-// ----------- RESPONSE KEY WORDS --------------//
+// DATA ----------- RESPONSE KEY WORDS --------------//
 var DATA = "data"
 var USER_DATA = "user_data"
 var VIDEO_DATA = "video_data"
 var VIDEO_CATEGORY = "video_category"
-
+var VIDEO_VERIFICATION = "video_verification"
 var USER_ID = ""
