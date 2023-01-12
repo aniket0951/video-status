@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"errors"
 	dbconfig "github.com/aniket0951/Chatrapati-Maharaj/db-config"
 	"github.com/aniket0951/Chatrapati-Maharaj/models"
 	"go.mongodb.org/mongo-driver/bson"
@@ -18,6 +19,7 @@ type VideoVerificationRepository interface {
 	Init() (context.Context, context.CancelFunc)
 	CreateVerification(verification models.VideoVerification) error
 	GetAllVideosVerification() ([]models.VideoVerification, error)
+	ApproveOrDeniedVideo(videoId primitive.ObjectID, verificationStatus string) error
 
 	CreatePublish(publish models.VideoPublish) error
 	GetAllPublishData() ([]models.VideoPublish, error)
@@ -53,7 +55,6 @@ func (db *videoverification) CreateVerification(verification models.VideoVerific
 
 	return err
 }
-
 func (db *videoverification) GetAllVideosVerification() ([]models.VideoVerification, error) {
 
 	filter := []bson.M{
@@ -73,6 +74,29 @@ func (db *videoverification) GetAllVideosVerification() ([]models.VideoVerificat
 	}
 
 	return verificationData, nil
+}
+func (db *videoverification) ApproveOrDeniedVideo(videoId primitive.ObjectID, verificationStatus string) error {
+	filter := bson.D{
+		bson.E{Key: "video_id", Value: videoId},
+	}
+
+	update := bson.D{
+		bson.E{Key: "$set", Value: bson.D{
+			bson.E{Key: "verification_status", Value: verificationStatus},
+			bson.E{Key: "updated_at", Value: primitive.NewDateTimeFromTime(time.Now())},
+		}},
+	}
+
+	ctx, cancel := db.Init()
+	defer cancel()
+
+	res := db.videoVerificationConnection.FindOneAndUpdate(ctx, filter, update)
+
+	if res.Err() == mongo.ErrNoDocuments {
+		return errors.New("no verification found for this video")
+	}
+
+	return nil
 }
 
 func (db *videoverification) CreatePublish(publish models.VideoPublish) error {
@@ -118,7 +142,6 @@ func (db *videoverification) CreateVerificationNotification(notification models.
 
 	return nil
 }
-
 func (db *videoverification) GetUserVerificationNotification(userId primitive.ObjectID) ([]models.VideoVerificationNotification, error) {
 
 	ctx, cancel := db.Init()

@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"mime/multipart"
 	"os"
@@ -194,6 +195,9 @@ func (db *videocategoriesrepo) AddVideo(video models.Videos, file multipart.File
 	video.ID = primitive.NewObjectID()
 	video.CreatedAt = primitive.NewDateTimeFromTime(time.Now())
 	video.UpdatedAt = primitive.NewDateTimeFromTime(time.Now())
+	video.IsVideoActive = false
+	video.IsVerified = false
+	video.IsPublished = false
 
 	tempFile, err := ioutil.TempFile("static", "upload-*.mp4")
 
@@ -206,12 +210,22 @@ func (db *videocategoriesrepo) AddVideo(video models.Videos, file multipart.File
 	fileBytes, fileReader := ioutil.ReadAll(file)
 
 	if fileReader != nil {
-		return primitive.NewObjectID(), fileReader
+		return video.ID, fileReader
 	}
 
 	tempFile.Write(fileBytes)
-	defer file.Close()
-	defer tempFile.Close()
+	defer func(file multipart.File) {
+		err := file.Close()
+		if err != nil {
+			fmt.Println(err)
+		}
+	}(file)
+	defer func(tempFile *os.File) {
+		err := tempFile.Close()
+		if err != nil {
+			fmt.Println(err)
+		}
+	}(tempFile)
 
 	video.VideoPath = path.Base(tempFile.Name())
 

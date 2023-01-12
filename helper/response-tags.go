@@ -36,3 +36,8 @@ var VIDEO_DATA = "video_data"
 var VIDEO_CATEGORY = "video_category"
 var VIDEO_VERIFICATION = "video_verification"
 var USER_ID = ""
+
+// ----------- VIDEO VERIFICATION STATUS --------------//
+var VERIFICATION_PENDING = "PENDING"
+var VERIFICATION_APPROVE = "APPROVE"
+var VERIFICATION_DENIED = "DENIED"

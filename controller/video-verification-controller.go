@@ -149,4 +149,12 @@ func (c *videoVerificationController) GetUserVerificationNotification(ctx *gin.C
 	}
 
 	res, err := c.verificationService.GetUserVerificationNotification(objId)
+
+	if err != nil {
+		helper.BuildUnprocessableEntityResponse(ctx, err)
+		return
+	}
+
+	response := helper.BuildSuccessResponse(helper.FETCHED_SUCCESS, helper.VIDEO_VERIFICATION, res)
+	ctx.JSON(http.StatusOK, response)
 }

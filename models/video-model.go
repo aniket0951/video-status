@@ -18,6 +18,8 @@ type Videos struct {
 	VideoTitle        string             `json:"video_title" bson:"video_title"`
 	VideoDescription  string             `json:"video_desc" bson:"video_desc"`
 	IsVideoActive     bool               `json:"is_active" bson:"is_active"`
+	IsVerified        bool               `json:"is_verified" bson:"is_verified"`
+	IsPublished       bool               `json:"is_published" bson:"is_published"`
 	VideoCategoriesID primitive.ObjectID `json:"video_cat_id" bson:"v_cat_id"`
 	VideoPath         string             `json:"video_path" bson:"video_path"`
 	CreatedAt         primitive.DateTime `json:"created_at" bson:"created_at"`

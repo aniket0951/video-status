@@ -13,7 +13,8 @@ import (
 )
 
 var (
-	userVideoRepo repositories.UserVideoRepository = repositories.NewUserVideoRepository()
+	userVideoRepo         repositories.UserVideoRepository         = repositories.NewUserVideoRepository()
+	videoVerificationRepo repositories.VideoVerificationRepository = repositories.NewVideoVerificationRepository()
 )
 
 type VideoService interface {
@@ -27,6 +28,7 @@ type VideoService interface {
 	GetAllVideos() ([]dto.GetVideosDTO, error)
 	UpdateVideo(video dto.UpdateVideoDTO) error
 	DeleteVideo(videoId primitive.ObjectID) error
+	//GetVideoById()
 
 	VideoFullDetails(videoId primitive.ObjectID) (interface{}, error)
 }

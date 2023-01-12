@@ -12,6 +12,7 @@ import (
 type VideoVerificationService interface {
 	CreateVerification(verification dto.CreateVideoVerificationDTO) error
 	GetAllVideosVerification() ([]dto.GetVideoVerificationDTO, error)
+	ApproveOrDeniedVideo(videoId primitive.ObjectID, verificationStatus string) error
 
 	CreatePublish(publish dto.CreatePublishDTO) error
 	GetAllPublishData() ([]dto.GetPublishDTO, error)
@@ -62,6 +63,17 @@ func (ser *videoVerificationService) GetAllVideosVerification() ([]dto.GetVideoV
 
 	return verificationData, nil
 }
+func (ser *videoVerificationService) ApproveOrDeniedVideo(videoId primitive.ObjectID, verificationStatus string) error {
+
+	err := ser.verificationRepo.ApproveOrDeniedVideo(videoId, verificationStatus)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
 func (ser *videoVerificationService) CreatePublish(publish dto.CreatePublishDTO) error {
 	createPublish := models.VideoPublish{}
 
