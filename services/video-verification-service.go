@@ -1,11 +1,13 @@
 package services
 
 import (
+	"errors"
 	"github.com/aniket0951/Chatrapati-Maharaj/dto"
 	"github.com/aniket0951/Chatrapati-Maharaj/models"
 	"github.com/aniket0951/Chatrapati-Maharaj/repositories"
 	"github.com/mashingan/smapping"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"strings"
 	"time"
 )
 
@@ -13,8 +15,9 @@ type VideoVerificationService interface {
 	CreateVerification(verification dto.CreateVideoVerificationDTO) error
 	GetAllVideosVerification() ([]dto.GetVideoVerificationDTO, error)
 	ApproveOrDeniedVideo(videoId primitive.ObjectID, verificationStatus string) error
+	VideosForVerification(tag string) ([]dto.GetVideoVerificationDTO, error)
 
-	CreatePublish(publish dto.CreatePublishDTO) error
+	PublishedVideo(publish dto.CreatePublishDTO) error
 	GetAllPublishData() ([]dto.GetPublishDTO, error)
 
 	CreateVerificationNotification(notification dto.CreateVerificationNotificationDTO) error
@@ -56,7 +59,7 @@ func (ser *videoVerificationService) GetAllVideosVerification() ([]dto.GetVideoV
 	for i := range res {
 		temp := dto.GetVideoVerificationDTO{}
 
-		smapping.FillStruct(&temp, smapping.MapFields(res[i]))
+		_ = smapping.FillStruct(&temp, smapping.MapFields(res[i]))
 
 		verificationData = append(verificationData, temp)
 	}
@@ -66,15 +69,44 @@ func (ser *videoVerificationService) GetAllVideosVerification() ([]dto.GetVideoV
 func (ser *videoVerificationService) ApproveOrDeniedVideo(videoId primitive.ObjectID, verificationStatus string) error {
 
 	err := ser.verificationRepo.ApproveOrDeniedVideo(videoId, verificationStatus)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 
 }
+func (ser *videoVerificationService) VideosForVerification(tag string) ([]dto.GetVideoVerificationDTO, error) {
+	res, err := ser.verificationRepo.VideosForVerification(tag)
 
-func (ser *videoVerificationService) CreatePublish(publish dto.CreatePublishDTO) error {
+	if err != nil {
+		return nil, err
+	}
+
+	if len(res) <= 0 {
+		return nil, errors.New("no video available at this time to publish")
+	}
+
+	var approvedVideos []dto.GetVideoVerificationDTO
+
+	for i := range res {
+		temp := dto.GetVideoVerificationDTO{}
+		smapping.FillStruct(&temp, smapping.MapFields(res[i]))
+
+		if len(temp.VideoInfo) > 0 {
+			videoPath := ""
+			if strings.Contains(temp.VideoInfo[0].VideoPath, "static") {
+				videoPath = "http://localhost:5000/" + temp.VideoInfo[0].VideoPath
+			} else {
+				videoPath = "http://localhost:5000/static/" + temp.VideoInfo[0].VideoPath
+			}
+
+			temp.VideoInfo[0].VideoPath = videoPath
+		}
+
+		approvedVideos = append(approvedVideos, temp)
+	}
+
+	return approvedVideos, nil
+}
+
+func (ser *videoVerificationService) PublishedVideo(publish dto.CreatePublishDTO) error {
 	createPublish := models.VideoPublish{}
 
 	createPublish.IsPublish = *publish.IsPublish
@@ -82,7 +114,7 @@ func (ser *videoVerificationService) CreatePublish(publish dto.CreatePublishDTO)
 	createPublish.CreatedAt = primitive.NewDateTimeFromTime(time.Now())
 	createPublish.UpdatedAt = primitive.NewDateTimeFromTime(time.Now())
 
-	return ser.verificationRepo.CreatePublish(createPublish)
+	return ser.verificationRepo.PublishedVideo(createPublish)
 }
 func (ser *videoVerificationService) GetAllPublishData() ([]dto.GetPublishDTO, error) {
 
@@ -97,7 +129,7 @@ func (ser *videoVerificationService) GetAllPublishData() ([]dto.GetPublishDTO, e
 	for i := range res {
 		temp := dto.GetPublishDTO{}
 
-		smapping.FillStruct(&temp, smapping.MapFields(res[i]))
+		_ = smapping.FillStruct(&temp, smapping.MapFields(res[i]))
 		publishData = append(publishData, temp)
 	}
 
@@ -109,6 +141,9 @@ func (ser *videoVerificationService) CreateVerificationNotification(notification
 	if smpErr := smapping.FillStruct(&notificationToCreate, smapping.MapFields(notification)); smpErr != nil {
 		return smpErr
 	}
+
+	notificationToCreate.CreatedAt = primitive.NewDateTimeFromTime(time.Now())
+	notificationToCreate.UpdatedAt = primitive.NewDateTimeFromTime(time.Now())
 
 	return ser.verificationRepo.CreateVerificationNotification(notificationToCreate)
 }
@@ -124,7 +159,7 @@ func (ser *videoVerificationService) GetUserVerificationNotification(userId prim
 	for i := range res {
 		temp := dto.GetVerificationNotificationDTO{}
 
-		smapping.FillStruct(&temp, smapping.MapFields(res[i]))
+		_ = smapping.FillStruct(&temp, smapping.MapFields(res[i]))
 
 		userNotifications = append(userNotifications, temp)
 	}

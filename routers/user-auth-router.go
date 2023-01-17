@@ -7,16 +7,15 @@ import (
 	"github.com/aniket0951/Chatrapati-Maharaj/repositories"
 	"github.com/aniket0951/Chatrapati-Maharaj/services"
 	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
-var userCollection *mongo.Collection = dbconfig.GetCollection(dbconfig.DB, "users")
+var userCollection = dbconfig.GetCollection(dbconfig.DB, "users")
 
 var (
-	jwtService   services.JWTService             = services.NewJWTService()
-	userAuthRepo repositories.UserAuthRepository = repositories.NewUserAuthRepository(userCollection)
-	userAuthSer  services.UserAuthService        = services.NewUserAuthService(userAuthRepo)
-	userAuthCont controller.UserAuthController   = controller.NewUserAuthController(userAuthSer, jwtService)
+	jwtService   = services.NewJWTService()
+	userAuthRepo = repositories.NewUserAuthRepository(userCollection)
+	userAuthSer  = services.NewUserAuthService(userAuthRepo)
+	userAuthCont = controller.NewUserAuthController(userAuthSer, jwtService)
 )
 
 func UserAuthRouter(router *gin.Engine) {

@@ -9,13 +9,12 @@ import (
 )
 
 var (
-	videoRepo           repositories.VideoRepository             = repositories.NewVideoCategoriesRepository()
-	userVideoRepo       repositories.UserVideoRepository         = repositories.NewUserVideoRepository()
-	verificationRepo    repositories.VideoVerificationRepository = repositories.NewVideoVerificationRepository()
-	userVideoService    services.UserVideoService                = services.NewUserVideoService(userVideoRepo)
-	videoService        services.VideoService                    = services.NewVideoCategoriesService(videoRepo)
-	verificationService services.VideoVerificationService        = services.NewVideoVerificationService(verificationRepository)
-	videoController     controller.VideoController               = controller.NewVideoController(videoService, userVideoService, verificationService)
+	videoRepo           = repositories.NewVideoCategoriesRepository()
+	userVideoRepo       = repositories.NewUserVideoRepository()
+	userVideoService    = services.NewUserVideoService(userVideoRepo)
+	videoService        = services.NewVideoCategoriesService(videoRepo)
+	verificationService = services.NewVideoVerificationService(verificationRepository)
+	videoController     = controller.NewVideoController(videoService, userVideoService, verificationService)
 )
 
 func VideoRouter(route *gin.Engine) {

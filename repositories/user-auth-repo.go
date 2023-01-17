@@ -8,7 +8,6 @@ import (
 	"time"
 
 	dbconfig "github.com/aniket0951/Chatrapati-Maharaj/db-config"
-	"github.com/aniket0951/Chatrapati-Maharaj/helper"
 	"github.com/aniket0951/Chatrapati-Maharaj/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -34,7 +33,7 @@ type UserAuthRepository interface {
 	Init() (context.Context, context.CancelFunc)
 }
 
-var userAddressCollection *mongo.Collection = dbconfig.GetCollection(dbconfig.DB, "user_address")
+var userAddressCollection = dbconfig.GetCollection(dbconfig.DB, "user_address")
 
 type userauthrepository struct {
 	userconnection        *mongo.Collection
@@ -78,7 +77,7 @@ func (db *userauthrepository) CreateEndUser(user models.Users) (models.Users, er
 		bson.E{Key: "_id", Value: result.InsertedID},
 	}
 
-	db.userconnection.FindOne(ctx, filter).Decode(&newUser)
+	_ = db.userconnection.FindOne(ctx, filter).Decode(&newUser)
 
 	return newUser, nil
 }
@@ -112,10 +111,10 @@ func (db *userauthrepository) GetAdminUserById(adminId primitive.ObjectID) (mode
 	defer cancel()
 	var adminUser models.AdminUser
 
-	db.userconnection.FindOne(ctx, filter).Decode(&adminUser)
-	fmt.Println("admin user ==> ", adminUser)
+	_ = db.userconnection.FindOne(ctx, filter).Decode(&adminUser)
+
 	if (adminUser == models.AdminUser{}) {
-		return models.AdminUser{}, errors.New(helper.DATA_NOT_FOUND)
+		return models.AdminUser{}, errors.New("data not found")
 	}
 
 	return adminUser, nil
@@ -152,7 +151,7 @@ func (db *userauthrepository) GetAllAdminUsers() ([]models.AdminUser, error) {
 	ctx, cancel := db.Init()
 	defer cancel()
 
-	allAdminUsers := []models.AdminUser{}
+	var allAdminUsers []models.AdminUser
 
 	cursor, curErr := db.userconnection.Find(ctx, bson.M{})
 
@@ -193,7 +192,7 @@ func (db *userauthrepository) ValidateAdminUser(email string) (models.AdminUser,
 		return user, nil
 	}
 
-	return models.AdminUser{}, errors.New(helper.DATA_NOT_FOUND)
+	return models.AdminUser{}, errors.New("data not found")
 }
 
 func (db *userauthrepository) DuplicateMobile(mobile string) bool {
@@ -246,7 +245,7 @@ func (db *userauthrepository) CheckUserAddressAlreadyAdded(userId primitive.Obje
 
 	userAddress := models.AdminUserAddressInfo{}
 
-	db.userAddressConnection.FindOne(ctx, filter).Decode(&userAddress)
+	_ = db.userAddressConnection.FindOne(ctx, filter).Decode(&userAddress)
 
 	if (userAddress == models.AdminUserAddressInfo{}) {
 		return models.AdminUserAddressInfo{}, nil

@@ -13,8 +13,7 @@ import (
 )
 
 var (
-	userVideoRepo         repositories.UserVideoRepository         = repositories.NewUserVideoRepository()
-	videoVerificationRepo repositories.VideoVerificationRepository = repositories.NewVideoVerificationRepository()
+	userVideoRepo = repositories.NewUserVideoRepository()
 )
 
 type VideoService interface {
@@ -27,6 +26,7 @@ type VideoService interface {
 	AddVideo(video dto.CreateVideosDTO, file multipart.File) (primitive.ObjectID, error)
 	GetAllVideos() ([]dto.GetVideosDTO, error)
 	UpdateVideo(video dto.UpdateVideoDTO) error
+	UpdateVideoVerification(video models.Videos) error
 	DeleteVideo(videoId primitive.ObjectID) error
 	//GetVideoById()
 
@@ -67,7 +67,7 @@ func (ser *videocategoriesservice) CreateCategory(category dto.CreateVideoCatego
 
 	newCategory := dto.GetVideoCategoriesDTO{}
 
-	smapping.FillStruct(&newCategory, smapping.MapFields(res))
+	_ = smapping.FillStruct(&newCategory, smapping.MapFields(res))
 
 	return newCategory, nil
 }
@@ -86,7 +86,7 @@ func (ser *videocategoriesservice) UpdateCategory(category dto.CreateVideoCatego
 	}
 
 	newCategory := dto.GetVideoCategoriesDTO{}
-	smapping.FillStruct(&newCategory, smapping.MapFields(result))
+	_ = smapping.FillStruct(&newCategory, smapping.MapFields(result))
 	return newCategory, nil
 }
 
@@ -97,11 +97,11 @@ func (ser *videocategoriesservice) GetAllCategory() ([]dto.GetVideoCategoriesDTO
 		return []dto.GetVideoCategoriesDTO{}, err
 	}
 
-	allCategory := []dto.GetVideoCategoriesDTO{}
+	var allCategory []dto.GetVideoCategoriesDTO
 
 	for i := range res {
 		temp := dto.GetVideoCategoriesDTO{}
-		smapping.FillStruct(&temp, smapping.MapFields(res[i]))
+		_ = smapping.FillStruct(&temp, smapping.MapFields(res[i]))
 
 		allCategory = append(allCategory, temp)
 	}
@@ -148,7 +148,7 @@ func (ser *videocategoriesservice) GetAllVideos() ([]dto.GetVideosDTO, error) {
 		return []dto.GetVideosDTO{}, nil
 	}
 
-	allVideos := []dto.GetVideosDTO{}
+	var allVideos []dto.GetVideosDTO
 
 	if len(res) == 0 {
 		return []dto.GetVideosDTO{}, errors.New("videos not availabel")
@@ -156,7 +156,7 @@ func (ser *videocategoriesservice) GetAllVideos() ([]dto.GetVideosDTO, error) {
 
 	for i := range res {
 		temp := dto.GetVideosDTO{}
-		smapping.FillStruct(&temp, smapping.MapFields(res[i]))
+		_ = smapping.FillStruct(&temp, smapping.MapFields(res[i]))
 		videoPath := ""
 		if strings.Contains(temp.VideoPath, "static") {
 			videoPath = "http://localhost:5000/" + temp.VideoPath
@@ -180,6 +180,10 @@ func (ser *videocategoriesservice) UpdateVideo(video dto.UpdateVideoDTO) error {
 
 	return ser.repo.UpdateVideo(videoToUpdate)
 
+}
+
+func (ser *videocategoriesservice) UpdateVideoVerification(video models.Videos) error {
+	return ser.repo.UpdateVideoVerification(video)
 }
 
 func (ser *videocategoriesservice) DeleteVideo(videoId primitive.ObjectID) error {

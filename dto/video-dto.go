@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"github.com/aniket0951/Chatrapati-Maharaj/models"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -68,6 +69,7 @@ type GetVideoVerificationDTO struct {
 	UserId             primitive.ObjectID `json:"user_id" bson:"user_id"`
 	VerificationStatus string             `json:"verification_status" bson:"verification_status"`
 	Reason             string             `json:"reason,omitempty" bson:"reason"`
+	VideoInfo          []models.Videos    `json:"video_info,omitempty" bson:"video_info"`
 	CreatedAt          primitive.DateTime `json:"created_at"`
 	UpdatedAt          primitive.DateTime `json:"updated_at"`
 }
@@ -94,7 +96,7 @@ type GetPublishDTO struct {
 type CreateVerificationNotificationDTO struct {
 	Title        string             `json:"title" validate:"required"`
 	Description  string             `json:"description" validate:"required"`
-	IsApproved   *bool              `json:"isApproved" validate:"required"`
+	IsApproved   string             `json:"isApproved" validate:"required"`
 	VideoId      primitive.ObjectID `json:"video_id" validate:"required"`
 	UserId       primitive.ObjectID `json:"user_id" validate:"required"`
 	UploadedDate primitive.DateTime `json:"uploadedDate" validate:"required"`
@@ -104,7 +106,7 @@ type GetVerificationNotificationDTO struct {
 	ID           primitive.ObjectID `json:"id" `
 	Title        string             `json:"title" `
 	Description  string             `json:"description" `
-	IsApproved   bool               `json:"isApproved"`
+	IsApproved   string             `json:"isApproved"`
 	VideoId      primitive.ObjectID `json:"video_id"`
 	UserId       primitive.ObjectID `json:"user_id"`
 	UploadedDate primitive.DateTime `json:"uploadedDate"`

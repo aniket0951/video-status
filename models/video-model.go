@@ -40,6 +40,7 @@ type VideoVerification struct {
 	UserId             primitive.ObjectID `json:"user_id" bson:"user_id"`
 	VerificationStatus string             `json:"verification_status" bson:"verification_status"`
 	Reason             string             `json:"reason" bson:"reason"`
+	VideoInfo          []Videos           `json:"video_info,omitempty" bson:"video_info"`
 	CreatedAt          primitive.DateTime `json:"created_at" bson:"created_at,omitempty"`
 	UpdatedAt          primitive.DateTime `json:"updated_at" bson:"updated_at,omitempty"`
 }
@@ -53,13 +54,11 @@ type VideoPublish struct {
 }
 
 type VideoVerificationNotification struct {
-	ID           primitive.ObjectID `json:"id" bson:"_id,omitempty"`
-	Title        string             `json:"title" bson:"title"`
-	Description  string             `json:"description" bson:"description"`
-	IsApproved   bool               `json:"isApproved" bson:"isApproved"`
-	VideoId      primitive.ObjectID `json:"video_id" bson:"video_id"`
-	UserId       primitive.ObjectID `json:"user_id" bson:"user_id"`
-	UploadedDate primitive.DateTime `json:"uploadedDate" bson:"uploadedDate"`
-	CreatedAt    primitive.DateTime `json:"created_at" bson:"created_at"`
-	UpdatedAt    primitive.DateTime `json:"updated_at" bson:"updated_at"`
+	ID          primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	Title       string             `json:"title" bson:"title"`
+	Description string             `json:"description" bson:"description"`
+	IsApproved  string             `json:"isApproved" bson:"isApproved"`
+	VideoId     primitive.ObjectID `json:"video_id" bson:"video_id"`
+	CreatedAt   primitive.DateTime `json:"created_at" bson:"created_at"`
+	UpdatedAt   primitive.DateTime `json:"updated_at" bson:"updated_at"`
 }

@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	userVideoCollection *mongo.Collection = dbconfig.GetCollection(dbconfig.DB, "user_video")
+	userVideoCollection = dbconfig.GetCollection(dbconfig.DB, "user_video")
 )
 
 type UserVideoRepository interface {

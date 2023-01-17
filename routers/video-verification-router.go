@@ -8,8 +8,8 @@ import (
 )
 
 var (
-	verificationRepository repositories.VideoVerificationRepository = repositories.NewVideoVerificationRepository()
-	verificationController controller.VideoVerificationController   = controller.NewVideoVerificationController(verificationService)
+	verificationRepository = repositories.NewVideoVerificationRepository()
+	verificationController = controller.NewVideoVerificationController(verificationService, videoService)
 )
 
 func VideoVerificationRoute(route *gin.Engine) {
@@ -17,8 +17,11 @@ func VideoVerificationRoute(route *gin.Engine) {
 	{
 		verification.POST("/create-verification", verificationController.CreateVerification)
 		verification.GET("/get-all-verification", verificationController.GetAllVideosVerification)
-		verification.POST("/create-publish", verificationController.CreatePublish)
+		verification.POST("/create-publish", verificationController.PublishedVideo)
 		verification.GET("/get-all-publish", verificationController.GetAllPublishData)
+
+		verification.POST("/approve-denied-video", verificationController.ApproveOrDeniedVideo)
+		verification.GET("/videos-verification", verificationController.VideosForVerification)
 	}
 
 	notification := route.Group("/api/verification-notification", middleware.AuthorizeJWT(jwtService))

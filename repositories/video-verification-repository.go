@@ -8,20 +8,22 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"time"
 )
 
-var videoVerificationCollection *mongo.Collection = dbconfig.GetCollection(dbconfig.DB, "video_verification")
-var publishCollection *mongo.Collection = dbconfig.GetCollection(dbconfig.DB, "video_publish")
-var verificationNotificationCollection *mongo.Collection = dbconfig.GetCollection(dbconfig.DB, "verification_notification")
+var videoVerificationCollection = dbconfig.GetCollection(dbconfig.DB, "video_verification")
+var publishCollection = dbconfig.GetCollection(dbconfig.DB, "video_publish")
+var verificationNotificationCollection = dbconfig.GetCollection(dbconfig.DB, "verification_notification")
 
 type VideoVerificationRepository interface {
 	Init() (context.Context, context.CancelFunc)
 	CreateVerification(verification models.VideoVerification) error
 	GetAllVideosVerification() ([]models.VideoVerification, error)
 	ApproveOrDeniedVideo(videoId primitive.ObjectID, verificationStatus string) error
+	VideosForVerification(tag string) ([]models.VideoVerification, error)
 
-	CreatePublish(publish models.VideoPublish) error
+	PublishedVideo(publish models.VideoPublish) error
 	GetAllPublishData() ([]models.VideoPublish, error)
 
 	CreateVerificationNotification(notification models.VideoVerificationNotification) error
@@ -98,14 +100,55 @@ func (db *videoverification) ApproveOrDeniedVideo(videoId primitive.ObjectID, ve
 
 	return nil
 }
+func (db *videoverification) VideosForVerification(tag string) ([]models.VideoVerification, error) {
 
-func (db *videoverification) CreatePublish(publish models.VideoPublish) error {
+	filter := []bson.M{
+		bson.M{
+			"$match": bson.M{
+				"verification_status": tag,
+			},
+		},
+		bson.M{
+			"$lookup": bson.M{
+				"from":         "videos",
+				"localField":   "video_id",
+				"foreignField": "_id",
+				"as":           "video_info",
+			},
+		},
+	}
+
 	ctx, cancel := db.Init()
 	defer cancel()
 
-	_, err := db.videoPublishConnection.InsertOne(ctx, publish)
+	cursor, curErr := db.videoVerificationConnection.Aggregate(ctx, filter)
 
-	return err
+	if curErr != nil {
+		return nil, curErr
+	}
+
+	var approveVideo []models.VideoVerification
+
+	if err := cursor.All(context.TODO(), &approveVideo); err != nil {
+		return nil, err
+	}
+
+	return approveVideo, nil
+}
+
+func (db *videoverification) PublishedVideo(publish models.VideoPublish) error {
+
+	filter := bson.D{
+		bson.E{Key: "video_id", Value: publish.VideoId},
+	}
+
+	opts := options.FindOneAndReplace().SetUpsert(true)
+
+	ctx, cancel := db.Init()
+	defer cancel()
+
+	db.videoPublishConnection.FindOneAndReplace(ctx, filter, publish, opts)
+	return nil
 }
 func (db *videoverification) GetAllPublishData() ([]models.VideoPublish, error) {
 	filter := []bson.M{
@@ -131,14 +174,19 @@ func (db *videoverification) GetAllPublishData() ([]models.VideoPublish, error) 
 }
 
 func (db *videoverification) CreateVerificationNotification(notification models.VideoVerificationNotification) error {
+
+	filter := bson.D{
+		bson.E{Key: "video_id", Value: notification.VideoId},
+	}
+
+	opts := options.FindOneAndReplace().SetUpsert(true)
+
 	ctx, cancel := db.Init()
 	defer cancel()
 
-	_, err := db.notificationConnection.InsertOne(ctx, notification)
+	//_, err := db.notificationConnection.InsertOne(ctx, notification)
 
-	if err != nil {
-		return err
-	}
+	db.notificationConnection.FindOneAndReplace(ctx, filter, notification, opts)
 
 	return nil
 }

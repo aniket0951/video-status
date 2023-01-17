@@ -19,8 +19,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-var videoCategoryCollection *mongo.Collection = dbconfig.GetCollection(dbconfig.DB, "video_category")
-var videosCollection *mongo.Collection = dbconfig.GetCollection(dbconfig.DB, "videos")
+var videoCategoryCollection = dbconfig.GetCollection(dbconfig.DB, "video_category")
+var videosCollection = dbconfig.GetCollection(dbconfig.DB, "videos")
 
 type VideoRepository interface {
 	CreateCategory(categories models.VideoCategories) (models.VideoCategories, error)
@@ -34,6 +34,7 @@ type VideoRepository interface {
 	GetAllVideos() ([]models.Videos, error)
 	GetVideoByID(videoId primitive.ObjectID) (models.Videos, error)
 	UpdateVideo(video models.Videos) error
+	UpdateVideoVerification(video models.Videos) error
 	DeleteVideo(videoId primitive.ObjectID) error
 
 	VideoFullDetails(videoId primitive.ObjectID) (interface{}, error)
@@ -179,7 +180,7 @@ func (db *videocategoriesrepo) DuplicateCategory(categoryName string) (bool, err
 	ctx, cancel := db.Init()
 	defer cancel()
 	category := models.VideoCategories{}
-	db.collection.FindOne(ctx, filter).Decode(&category)
+	_ = db.collection.FindOne(ctx, filter).Decode(&category)
 
 	if (category == models.VideoCategories{}) {
 		return false, nil
@@ -205,7 +206,12 @@ func (db *videocategoriesrepo) AddVideo(video models.Videos, file multipart.File
 		return primitive.NewObjectID(), err
 	}
 
-	defer tempFile.Close()
+	defer func(tempFile *os.File) {
+		err := tempFile.Close()
+		if err != nil {
+			fmt.Println(err)
+		}
+	}(tempFile)
 
 	fileBytes, fileReader := ioutil.ReadAll(file)
 
@@ -213,7 +219,7 @@ func (db *videocategoriesrepo) AddVideo(video models.Videos, file multipart.File
 		return video.ID, fileReader
 	}
 
-	tempFile.Write(fileBytes)
+	_, err = tempFile.Write(fileBytes)
 	defer func(file multipart.File) {
 		err := file.Close()
 		if err != nil {
@@ -266,7 +272,6 @@ func (db *videocategoriesrepo) GetAllVideos() ([]models.Videos, error) {
 		return []models.Videos{}, err
 	}
 
-	//fmt.Printf("%v\n", newData)
 	return videos, nil
 }
 
@@ -277,6 +282,33 @@ func (db *videocategoriesrepo) UpdateVideo(video models.Videos) error {
 			bson.E{Key: "video_desc", Value: video.VideoDescription},
 			bson.E{Key: "is_active", Value: video.IsVideoActive},
 			bson.E{Key: "v_cat_id", Value: video.VideoCategoriesID},
+			bson.E{Key: "updated_at", Value: primitive.NewDateTimeFromTime(time.Now())},
+		}},
+	}
+
+	ctx, cancel := db.Init()
+	defer cancel()
+
+	res, upErr := db.videoscollection.UpdateByID(ctx, video.ID, update)
+
+	if upErr != nil {
+		return upErr
+	}
+
+	if res.MatchedCount == 0 {
+		return errors.New("video not found to update")
+	}
+
+	return nil
+}
+
+func (db *videocategoriesrepo) UpdateVideoVerification(video models.Videos) error {
+
+	update := bson.D{
+		bson.E{Key: "$set", Value: bson.D{
+			bson.E{Key: "is_verified", Value: video.IsVerified},
+			bson.E{Key: "is_published", Value: video.IsPublished},
+			bson.E{Key: "is_active", Value: video.IsVideoActive},
 			bson.E{Key: "updated_at", Value: primitive.NewDateTimeFromTime(time.Now())},
 		}},
 	}

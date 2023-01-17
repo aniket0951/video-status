@@ -40,7 +40,7 @@ func NewUserAuthController(service services.UserAuthService, jwtService services
 
 func (c *userauthcontroller) CreateEndUser(ctx *gin.Context) {
 	var user dto.RegisterEndUserDTO
-	ctx.BindJSON(&user)
+	_ = ctx.BindJSON(&user)
 
 	if (user == dto.RegisterEndUserDTO{}) {
 		helper.RequestBodyEmptyResponse(ctx)
@@ -74,7 +74,7 @@ func (c *userauthcontroller) CreateEndUser(ctx *gin.Context) {
 
 func (c *userauthcontroller) CreateAdminUser(ctx *gin.Context) {
 	var user dto.CreateAdminUserDTO
-	ctx.BindJSON(&user)
+	_ = ctx.BindJSON(&user)
 
 	sv := validator.New()
 	structVal := sv.Struct(&user)
@@ -100,7 +100,7 @@ func (c *userauthcontroller) CreateAdminUser(ctx *gin.Context) {
 
 func (c *userauthcontroller) AdminUserLogin(ctx *gin.Context) {
 	userCredentials := dto.AdminLoginDTO{}
-	ctx.BindJSON(&userCredentials)
+	_ = ctx.BindJSON(&userCredentials)
 	fmt.Println(userCredentials)
 	if (userCredentials == dto.AdminLoginDTO{}) {
 		helper.RequestBodyEmptyResponse(ctx)
@@ -124,7 +124,7 @@ func (c *userauthcontroller) AdminUserLogin(ctx *gin.Context) {
 	}
 
 	stringObjectID := res.ID.Hex()
-	generateToken := c.jwtService.GenerateToken(string(stringObjectID), res.UserType)
+	generateToken := c.jwtService.GenerateToken(stringObjectID, res.UserType)
 	res.Token = generateToken
 
 	response := helper.BuildSuccessResponse("You are login successfully.", helper.USER_DATA, res)
@@ -167,7 +167,7 @@ func (c *userauthcontroller) GetUserById(ctx *gin.Context) {
 
 func (c *userauthcontroller) UpdateAdminUser(ctx *gin.Context) {
 	userToUpdate := dto.UpdateAdminUserDTO{}
-	ctx.BindJSON(&userToUpdate)
+	_ = ctx.BindJSON(&userToUpdate)
 
 	if (userToUpdate == dto.UpdateAdminUserDTO{}) {
 		helper.RequestBodyEmptyResponse(ctx)
@@ -243,7 +243,7 @@ func (c *userauthcontroller) GetAllAdminUser(ctx *gin.Context) {
 
 func (c *userauthcontroller) AddAdminUserAddress(ctx *gin.Context) {
 	addressToCreate := dto.CreateAdminUserAddress{}
-	ctx.BindJSON(&addressToCreate)
+	_ = ctx.BindJSON(&addressToCreate)
 
 	if (addressToCreate == dto.CreateAdminUserAddress{}) {
 		helper.RequestBodyEmptyResponse(ctx)
@@ -303,7 +303,7 @@ func (c *userauthcontroller) GetAdminUserAdrress(ctx *gin.Context) {
 
 func (c *userauthcontroller) UpdateAdminAddress(ctx *gin.Context) {
 	addressToUpdate := dto.UpdateAdminAddressDTO{}
-	ctx.BindJSON(&addressToUpdate)
+	_ = ctx.BindJSON(&addressToUpdate)
 
 	if (addressToUpdate == dto.UpdateAdminAddressDTO{}) {
 		helper.RequestBodyEmptyResponse(ctx)
