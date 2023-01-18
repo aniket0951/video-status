@@ -169,6 +169,10 @@ func (c *videoVerificationController) PublishedVideo(ctx *gin.Context) {
 	}
 
 	go func() {
+
+	}()
+
+	go func() {
 		video := models.Videos{
 			ID:            publishToCreate.VideoId,
 			IsVideoActive: true,

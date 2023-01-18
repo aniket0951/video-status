@@ -80,7 +80,7 @@ func (ser *videoVerificationService) VideosForVerification(tag string) ([]dto.Ge
 	}
 
 	if len(res) <= 0 {
-		return nil, errors.New("no video available at this time to publish")
+		return nil, errors.New("no video available at this time to " + tag)
 	}
 
 	var approvedVideos []dto.GetVideoVerificationDTO
