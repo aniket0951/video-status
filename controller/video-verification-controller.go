@@ -168,9 +168,12 @@ func (c *videoVerificationController) PublishedVideo(ctx *gin.Context) {
 		return
 	}
 
-	go func() {
+	err := c.verificationService.CreateVideoProcessHistory(publishToCreate.VideoId)
 
-	}()
+	if err != nil {
+		helper.BuildUnprocessableEntityResponse(ctx, err)
+		return
+	}
 
 	go func() {
 		video := models.Videos{
@@ -181,6 +184,11 @@ func (c *videoVerificationController) PublishedVideo(ctx *gin.Context) {
 		}
 
 		_ = c.videoService.UpdateVideoVerification(video)
+	}()
+
+	go func() {
+		notification := c.BuildVerificationNotificationData("Video Published", helper.VIDEO_PUBLISHED, publishToCreate.VideoId, "")
+		_ = c.verificationService.CreateVerificationNotification(notification)
 	}()
 
 	response := helper.BuildSuccessResponse(helper.DATA_INSERTED, helper.VIDEO_VERIFICATION, helper.EmptyObj{})

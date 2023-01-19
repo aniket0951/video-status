@@ -2,14 +2,13 @@ package services
 
 import (
 	"errors"
-	"mime/multipart"
-	"strings"
-
 	"github.com/aniket0951/Chatrapati-Maharaj/dto"
 	"github.com/aniket0951/Chatrapati-Maharaj/models"
 	"github.com/aniket0951/Chatrapati-Maharaj/repositories"
 	"github.com/mashingan/smapping"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"mime/multipart"
+	"strings"
 )
 
 var (
@@ -121,16 +120,16 @@ func (ser *videocategoriesservice) DuplicateCategory(categoryName string) (bool,
 }
 
 func (ser *videocategoriesservice) AddVideo(video dto.CreateVideosDTO, file multipart.File) (primitive.ObjectID, error) {
+	_, isCatErr := ser.repo.GetCategoryById(video.VideoCategoriesID)
+
+	if isCatErr != nil {
+		return primitive.NewObjectID(), isCatErr
+	}
+
 	videoToCreate := models.Videos{}
 
 	if smpErr := smapping.FillStruct(&videoToCreate, smapping.MapFields(video)); smpErr != nil {
 		return primitive.NewObjectID(), smpErr
-	}
-
-	_, isCatErr := ser.repo.GetCategoryById(videoToCreate.VideoCategoriesID)
-
-	if isCatErr != nil {
-		return primitive.NewObjectID(), isCatErr
 	}
 
 	res, err := ser.repo.AddVideo(videoToCreate, file)

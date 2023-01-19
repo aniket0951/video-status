@@ -3,16 +3,14 @@ package controller
 import (
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
-	"strconv"
-
 	"github.com/aniket0951/Chatrapati-Maharaj/dto"
 	"github.com/aniket0951/Chatrapati-Maharaj/helper"
 	"github.com/aniket0951/Chatrapati-Maharaj/services"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"io"
+	"net/http"
 )
 
 type VideoController interface {
@@ -156,16 +154,13 @@ func (c *videocontroller) AddVideo(ctx *gin.Context) {
 	file, _, _ := ctx.Request.FormFile("video")
 	title := ctx.Request.PostForm.Get("title")
 	desc := ctx.Request.PostForm.Get("desc")
-	isActive := ctx.Request.PostForm.Get("is_active")
 	videoCatId := ctx.Request.PostForm.Get("video_cat_id")
 
-	isActiveConverted, _ := strconv.ParseBool(isActive)
 	objID, _ := primitive.ObjectIDFromHex(videoCatId)
 
 	videoToCreate := dto.CreateVideosDTO{
 		VideoTitle:        title,
 		VideoDescription:  desc,
-		IsVideoActive:     isActiveConverted,
 		VideoCategoriesID: objID,
 	}
 

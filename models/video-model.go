@@ -53,6 +53,14 @@ type VideoPublish struct {
 	UpdatedAt primitive.DateTime `json:"updated_at" bson:"updated_at"`
 }
 
+type VideoProcessHistory struct {
+	ID                       primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	VideoVerificationHistory VideoVerification  `json:"video_verification_history" bson:"video_verification_history"`
+	VideoPublishHistory      VideoPublish       `json:"video_publish_history" bson:"video_publish_history"`
+	CreatedAt                primitive.DateTime `json:"created_at" bson:"created_at"`
+	UpdatedAt                primitive.DateTime `json:"updated_at" bson:"updated_at"`
+}
+
 type VideoVerificationNotification struct {
 	ID          primitive.ObjectID `json:"id" bson:"_id,omitempty"`
 	Title       string             `json:"title" bson:"title"`

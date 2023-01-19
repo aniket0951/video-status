@@ -19,6 +19,7 @@ type VideoVerificationService interface {
 
 	PublishedVideo(publish dto.CreatePublishDTO) error
 	GetAllPublishData() ([]dto.GetPublishDTO, error)
+	CreateVideoProcessHistory(videoId primitive.ObjectID) error
 
 	CreateVerificationNotification(notification dto.CreateVerificationNotificationDTO) error
 	GetUserVerificationNotification(userId primitive.ObjectID) ([]dto.GetVerificationNotificationDTO, error)
@@ -134,6 +135,41 @@ func (ser *videoVerificationService) GetAllPublishData() ([]dto.GetPublishDTO, e
 	}
 
 	return publishData, nil
+}
+func (ser *videoVerificationService) CreateVideoProcessHistory(videoId primitive.ObjectID) error {
+	verificationData, err := ser.verificationRepo.GetVideoVerificationByVideoId(videoId)
+
+	if err != nil {
+		return err
+	}
+
+	publisheData, pubErr := ser.verificationRepo.GetPublishVideoByVideoId(videoId)
+
+	if pubErr != nil {
+		return pubErr
+	}
+
+	videoProcessData := models.VideoProcessHistory{}
+	_ = smapping.FillStruct(&videoProcessData.VideoVerificationHistory, smapping.MapFields(verificationData))
+	_ = smapping.FillStruct(&videoProcessData.VideoPublishHistory, smapping.MapFields(publisheData))
+	videoProcessData.CreatedAt = primitive.NewDateTimeFromTime(time.Now())
+	videoProcessData.UpdatedAt = primitive.NewDateTimeFromTime(time.Now())
+
+	creErr := ser.verificationRepo.CreateVideoProcessHistory(videoProcessData)
+	if creErr != nil {
+		return creErr
+	}
+
+	go func() {
+		_ = ser.verificationRepo.DeleteVerificationByVideoId(videoId)
+	}()
+
+	go func() {
+		_ = ser.verificationRepo.DeletePublishByVideoId(videoId)
+	}()
+
+	return nil
+
 }
 
 func (ser *videoVerificationService) CreateVerificationNotification(notification dto.CreateVerificationNotificationDTO) error {

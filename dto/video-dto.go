@@ -24,7 +24,6 @@ type GetVideoCategoriesDTO struct {
 type CreateVideosDTO struct {
 	VideoTitle        string             `json:"video_title" validate:"required"`
 	VideoDescription  string             `json:"video_desc" validate:"required"`
-	IsVideoActive     bool               `json:"is_active" validate:"required"`
 	VideoCategoriesID primitive.ObjectID `json:"video_cat_id" validate:"required"`
 }
 

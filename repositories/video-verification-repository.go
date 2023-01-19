@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"errors"
+	"fmt"
 	dbconfig "github.com/aniket0951/Chatrapati-Maharaj/db-config"
 	"github.com/aniket0951/Chatrapati-Maharaj/models"
 	"go.mongodb.org/mongo-driver/bson"
@@ -15,6 +16,7 @@ import (
 var videoVerificationCollection = dbconfig.GetCollection(dbconfig.DB, "video_verification")
 var publishCollection = dbconfig.GetCollection(dbconfig.DB, "video_publish")
 var verificationNotificationCollection = dbconfig.GetCollection(dbconfig.DB, "verification_notification")
+var videoProcessHistoryCollection = dbconfig.GetCollection(dbconfig.DB, "video_process_history")
 
 type VideoVerificationRepository interface {
 	Init() (context.Context, context.CancelFunc)
@@ -22,25 +24,32 @@ type VideoVerificationRepository interface {
 	GetAllVideosVerification() ([]models.VideoVerification, error)
 	ApproveOrDeniedVideo(videoId primitive.ObjectID, verificationStatus string) error
 	VideosForVerification(tag string) ([]models.VideoVerification, error)
+	GetVideoVerificationByVideoId(videoId primitive.ObjectID) (models.VideoVerification, error)
+	DeleteVerificationByVideoId(videoId primitive.ObjectID) error
 
 	PublishedVideo(publish models.VideoPublish) error
 	GetAllPublishData() ([]models.VideoPublish, error)
+	GetPublishVideoByVideoId(videoId primitive.ObjectID) (models.VideoPublish, error)
+	DeletePublishByVideoId(videoId primitive.ObjectID) error
+	CreateVideoProcessHistory(history models.VideoProcessHistory) error
 
 	CreateVerificationNotification(notification models.VideoVerificationNotification) error
 	GetUserVerificationNotification(userId primitive.ObjectID) ([]models.VideoVerificationNotification, error)
 }
 
 type videoverification struct {
-	videoVerificationConnection *mongo.Collection
-	videoPublishConnection      *mongo.Collection
-	notificationConnection      *mongo.Collection
+	videoVerificationConnection   *mongo.Collection
+	videoPublishConnection        *mongo.Collection
+	notificationConnection        *mongo.Collection
+	videoProcessHistoryConnection *mongo.Collection
 }
 
 func NewVideoVerificationRepository() VideoVerificationRepository {
 	return &videoverification{
-		videoVerificationConnection: videoVerificationCollection,
-		videoPublishConnection:      publishCollection,
-		notificationConnection:      verificationNotificationCollection,
+		videoVerificationConnection:   videoVerificationCollection,
+		videoPublishConnection:        publishCollection,
+		notificationConnection:        verificationNotificationCollection,
+		videoProcessHistoryConnection: videoProcessHistoryCollection,
 	}
 }
 
@@ -135,6 +144,42 @@ func (db *videoverification) VideosForVerification(tag string) ([]models.VideoVe
 
 	return approveVideo, nil
 }
+func (db *videoverification) GetVideoVerificationByVideoId(videoId primitive.ObjectID) (models.VideoVerification, error) {
+	filter := bson.D{
+		bson.E{Key: "video_id", Value: videoId},
+	}
+
+	ctx, cancel := db.Init()
+	defer cancel()
+
+	videoVerification := models.VideoVerification{}
+	err := db.videoVerificationConnection.FindOne(ctx, filter).Decode(&videoVerification)
+
+	if err != nil {
+		return models.VideoVerification{}, err
+	}
+
+	return videoVerification, nil
+}
+func (db *videoverification) DeleteVerificationByVideoId(videoId primitive.ObjectID) error {
+	filter := bson.D{
+		bson.E{Key: "video_id", Value: videoId},
+	}
+
+	ctx, cancel := db.Init()
+	defer cancel()
+
+	res, err := db.videoVerificationConnection.DeleteOne(ctx, filter)
+	if err != nil {
+		return err
+	}
+
+	if res.DeletedCount == 0 {
+		return errors.New("verification not found for delete")
+	}
+
+	return nil
+}
 
 func (db *videoverification) PublishedVideo(publish models.VideoPublish) error {
 
@@ -171,6 +216,57 @@ func (db *videoverification) GetAllPublishData() ([]models.VideoPublish, error) 
 	}
 
 	return publishData, nil
+}
+func (db *videoverification) GetPublishVideoByVideoId(videoId primitive.ObjectID) (models.VideoPublish, error) {
+	filter := bson.D{
+		bson.E{Key: "video_id", Value: videoId},
+	}
+
+	ctx, cancel := db.Init()
+	defer cancel()
+
+	publishData := models.VideoPublish{}
+	err := db.videoPublishConnection.FindOne(ctx, filter).Decode(&publishData)
+	if err != nil {
+		return models.VideoPublish{}, err
+	}
+
+	return publishData, nil
+}
+func (db *videoverification) DeletePublishByVideoId(videoId primitive.ObjectID) error {
+	filter := bson.D{
+		bson.E{Key: "video_id", Value: videoId},
+	}
+
+	ctx, cancel := db.Init()
+	defer cancel()
+
+	res, err := db.videoPublishConnection.DeleteOne(ctx, filter)
+
+	if err != nil {
+		return err
+	}
+
+	if res.DeletedCount == 0 {
+		return errors.New("video publish not found")
+	}
+
+	return nil
+
+}
+func (db *videoverification) CreateVideoProcessHistory(history models.VideoProcessHistory) error {
+	ctx, cancel := db.Init()
+	defer cancel()
+
+	res, err := db.videoProcessHistoryConnection.InsertOne(ctx, history)
+
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(res)
+
+	return nil
 }
 
 func (db *videoverification) CreateVerificationNotification(notification models.VideoVerificationNotification) error {
