@@ -401,7 +401,7 @@ func (db *videocategoriesrepo) VideoFullDetails(videoId primitive.ObjectID) (int
 				"from":         "videos",
 				"localField":   "video_id",
 				"foreignField": "_id",
-				"as":           "video_data",
+				"as":           "videos_data",
 			},
 		},
 	}
