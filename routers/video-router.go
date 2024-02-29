@@ -31,4 +31,17 @@ func VideoRouter(route *gin.Engine) {
 		videos.PUT("/update-video", videoController.UpdateVideo)
 		videos.DELETE("/delete-video", videoController.DeleteVideo)
 	}
+
+	inActiveVideo := route.Group("/api")
+	{
+		inActiveVideo.GET("/inactive-video", videoController.FetchInActiveVideos)
+		inActiveVideo.POST("/inactive-video/:videoId", videoController.ActiveVideo)
+		inActiveVideo.GET("/get-all-videos", videoController.GetAllVideos)
+		inActiveVideo.GET("/video/:videoId", videoController.GetVideoByID)
+	}
+
+	download := route.Group("/api")
+	{
+		download.POST("/download-increase/:videoId", videoController.IncreaseDownloadCount)
+	}
 }

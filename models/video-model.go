@@ -20,6 +20,7 @@ type Videos struct {
 	IsVideoActive     bool               `json:"is_active" bson:"is_active"`
 	VideoCategoriesID primitive.ObjectID `json:"video_cat_id" bson:"v_cat_id"`
 	VideoPath         string             `json:"video_path" bson:"video_path"`
+	DownloadCount     int32              `json:"download_count" bson:"download_count"`
 	CreatedAt         primitive.DateTime `json:"created_at" bson:"created_at"`
 	UpdatedAt         primitive.DateTime `json:"updated_at" bson:"updated_at"`
 }

@@ -190,7 +190,7 @@ func (c *userauthcontroller) UpdateAdminUser(ctx *gin.Context) {
 
 	response := helper.BuildSuccessResponse(helper.UPDATE_SUCCESS, helper.USER_DATA, helper.EmptyObj{})
 	ctx.JSON(http.StatusOK, response)
-	return
+
 }
 
 func (c *userauthcontroller) DeleteAdminUser(ctx *gin.Context) {

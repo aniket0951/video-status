@@ -2,12 +2,15 @@ package services
 
 import (
 	"errors"
+	"mime/multipart"
+	"reflect"
+	"strings"
+
 	"github.com/aniket0951/Chatrapati-Maharaj/dto"
 	"github.com/aniket0951/Chatrapati-Maharaj/models"
 	"github.com/aniket0951/Chatrapati-Maharaj/repositories"
 	"github.com/mashingan/smapping"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"mime/multipart"
 )
 
 type VideoService interface {
@@ -21,6 +24,11 @@ type VideoService interface {
 	GetAllVideos() ([]dto.GetVideosDTO, error)
 	UpdateVideo(video dto.UpdateVideoDTO) error
 	DeleteVideo(videoId primitive.ObjectID) error
+
+	FetchInActiveVideos() ([]dto.GetVideosDTO, error)
+	ActiveVideo(video_id primitive.ObjectID) error
+	IncreaseDownloadCount(video_id primitive.ObjectID) error
+	GetVideoByID(videoId primitive.ObjectID) (dto.GetVideosDTO, error)
 }
 
 type videocategoriesservice struct {
@@ -145,8 +153,9 @@ func (ser *videocategoriesservice) GetAllVideos() ([]dto.GetVideosDTO, error) {
 	for i := range res {
 		temp := dto.GetVideosDTO{}
 		smapping.FillStruct(&temp, smapping.MapFields(res[i]))
-		videoPath := "http://localhost:5000/" + temp.VideoPath
+		videoPath := "http://localhost:5000/static/" + temp.VideoPath
 		temp.VideoPath = videoPath
+		temp.DownloadCount = res[i].DownloadCount
 		allVideos = append(allVideos, temp)
 	}
 
@@ -161,11 +170,74 @@ func (ser *videocategoriesservice) UpdateVideo(video dto.UpdateVideoDTO) error {
 	}
 
 	return ser.repo.UpdateVideo(videoToUpdate)
-
 }
 
 func (ser *videocategoriesservice) DeleteVideo(videoId primitive.ObjectID) error {
 	err := ser.repo.DeleteVideo(videoId)
 
 	return err
+}
+
+func (ser *videocategoriesservice) FetchInActiveVideos() ([]dto.GetVideosDTO, error) {
+	result, err := ser.repo.FetchInActiveVideos()
+
+	if err != nil {
+		return nil, err
+	}
+
+	var inActiveVideos []dto.GetVideosDTO
+
+	if len(result) == 0 {
+		return []dto.GetVideosDTO{}, errors.New("videos not availabel")
+	}
+
+	for i := range result {
+		temp := dto.GetVideosDTO{}
+		smapping.FillStruct(&temp, smapping.MapFields(result[i]))
+		var videoPath string
+		if !strings.Contains(temp.VideoPath, "static") {
+			videoPath = "http://localhost:5000/static/" + temp.VideoPath
+		} else {
+			videoPath = "http://localhost:5000/" + temp.VideoPath
+		}
+
+		temp.VideoPath = videoPath
+		temp.DownloadCount = result[i].DownloadCount
+		inActiveVideos = append(inActiveVideos, temp)
+	}
+
+	return inActiveVideos, nil
+}
+
+func (ser *videocategoriesservice) ActiveVideo(video_id primitive.ObjectID) error {
+	return ser.repo.ActiveVideo(video_id)
+}
+
+func (ser *videocategoriesservice) IncreaseDownloadCount(video_id primitive.ObjectID) error {
+	return ser.repo.IncreaseDownloadCount(video_id)
+}
+
+func (ser *videocategoriesservice) GetVideoByID(videoId primitive.ObjectID) (dto.GetVideosDTO, error) {
+	result, err := ser.repo.GetVideoByID(videoId)
+
+	if err != nil {
+		return dto.GetVideosDTO{}, err
+	}
+
+	if (reflect.DeepEqual(dto.GetVideosDTO{}, result)) {
+		return dto.GetVideosDTO{}, errors.New("video not found")
+	}
+
+	var video dto.GetVideosDTO
+	video.ID = result.ID
+	video.VideoTitle = result.VideoTitle
+	video.VideoDescription = result.VideoDescription
+	video.IsVideoActive = result.IsVideoActive
+	videoPath := "http://localhost:5000/static/" + result.VideoPath
+	video.VideoPath = videoPath
+	video.DownloadCount = result.DownloadCount
+	video.CreatedAt = result.CreatedAt
+	video.UpdatedAt = result.UpdatedAt
+
+	return video, nil
 }

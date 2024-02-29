@@ -3,12 +3,14 @@ package repositories
 import (
 	"context"
 	"errors"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"io/ioutil"
 	"mime/multipart"
 	"os"
 	"path"
+	"strings"
 	"time"
+
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	dbconfig "github.com/aniket0951/Chatrapati-Maharaj/db-config"
 	"github.com/aniket0951/Chatrapati-Maharaj/helper"
@@ -34,6 +36,10 @@ type VideoRepository interface {
 	GetVideoByID(videoId primitive.ObjectID) (models.Videos, error)
 	UpdateVideo(video models.Videos) error
 	DeleteVideo(videoId primitive.ObjectID) error
+
+	FetchInActiveVideos() ([]models.Videos, error)
+	ActiveVideo(video_id primitive.ObjectID) error
+	IncreaseDownloadCount(video_id primitive.ObjectID) error
 
 	Init() (context.Context, context.CancelFunc)
 }
@@ -101,7 +107,6 @@ func (db *videocategoriesrepo) UpdateCategory(categories models.VideoCategories)
 	}
 
 	return categories, nil
-
 }
 
 func (db *videocategoriesrepo) GetAllCategory() ([]models.VideoCategories, error) {
@@ -182,7 +187,6 @@ func (db *videocategoriesrepo) DuplicateCategory(categoryName string) (bool, err
 	}
 
 	return true, errors.New("this category already exits")
-
 }
 
 func (db *videocategoriesrepo) AddVideo(video models.Videos, file multipart.File) error {
@@ -227,9 +231,9 @@ func (db *videocategoriesrepo) GetAllVideos() ([]models.Videos, error) {
 	ctx, cancel := db.Init()
 	defer cancel()
 
-	queryOptions := options.Find().SetSort(bson.D{{"_id", -1}})
-
-	cursor, curErr := db.videoscollection.Find(ctx, bson.M{}, queryOptions)
+	queryOptions := options.Find().SetSort(bson.D{{Key: "_id", Value: -1}})
+	filter := bson.M{"is_active": true}
+	cursor, curErr := db.videoscollection.Find(ctx, filter, queryOptions)
 
 	if curErr != nil {
 		return []models.Videos{}, curErr
@@ -313,7 +317,76 @@ func (db *videocategoriesrepo) DeleteVideo(videoId primitive.ObjectID) error {
 		return errors.New("failed to delete the video")
 	}
 
-	fileRemoveErr := os.Remove(video.VideoPath)
+	path := video.VideoPath
+	var fileRemoveErr error
+	if strings.Contains(path, "static") {
+		fileRemoveErr = os.Remove(path)
+	} else {
+		fileRemoveErr = os.Remove("./static/" + path)
+	}
+
+	// fileRemoveErr = os.Remove(video.VideoPath)
 
 	return fileRemoveErr
+}
+
+func (db *videocategoriesrepo) FetchInActiveVideos() ([]models.Videos, error) {
+	ctx, cancel := db.Init()
+	defer cancel()
+
+	filter := bson.M{"is_active": false}
+
+	cursor, err := db.videoscollection.Find(ctx, filter)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var result []models.Videos
+
+	if err := cursor.All(context.TODO(), &result); err != nil {
+		return nil, err
+	}
+
+	return result, err
+}
+
+func (db *videocategoriesrepo) ActiveVideo(video_id primitive.ObjectID) error {
+	ctx, cancel := db.Init()
+	defer cancel()
+	update := bson.M{
+		"$set": bson.M{
+			"is_active":  true,
+			"updated_at": time.Now(),
+		},
+	}
+
+	result, err := db.videoscollection.UpdateByID(ctx, video_id, update)
+
+	if err != nil {
+		return err
+	}
+
+	if result.MatchedCount == 0 {
+		return errors.New("video not found to update")
+	}
+
+	return nil
+}
+
+func (db *videocategoriesrepo) IncreaseDownloadCount(video_id primitive.ObjectID) error {
+	ctx, cancel := db.Init()
+	defer cancel()
+
+	update := bson.M{
+		"$inc": bson.M{
+			"download_count": 1,
+		},
+	}
+
+	filter := bson.M{"_id": video_id}
+
+	_, err := db.videoscollection.UpdateOne(ctx, filter, update)
+
+	return err
 }
