@@ -3,9 +3,11 @@ package controller
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/aniket0951/Chatrapati-Maharaj/dto"
 	"github.com/aniket0951/Chatrapati-Maharaj/helper"
+	notificationmanager "github.com/aniket0951/Chatrapati-Maharaj/notification_manager"
 	"github.com/aniket0951/Chatrapati-Maharaj/services"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -24,17 +26,25 @@ type UserAuthController interface {
 	AddAdminUserAddress(ctx *gin.Context)
 	GetAdminUserAdrress(ctx *gin.Context)
 	UpdateAdminAddress(ctx *gin.Context)
+
+	SaveTokens(ctx *gin.Context)
+	GetTokens(ctx *gin.Context)
 }
+
+var notificationManager = notificationmanager.NewNotificationManagerRepo()
 
 type userauthcontroller struct {
 	service    services.UserAuthService
 	jwtService services.JWTService
+	// notification Manager
+	notificationService notificationmanager.NotificationManagerRepo
 }
 
 func NewUserAuthController(service services.UserAuthService, jwtService services.JWTService) UserAuthController {
 	return &userauthcontroller{
-		service:    service,
-		jwtService: jwtService,
+		service:             service,
+		jwtService:          jwtService,
+		notificationService: notificationManager,
 	}
 }
 
@@ -48,7 +58,7 @@ func (c *userauthcontroller) CreateEndUser(ctx *gin.Context) {
 	}
 
 	if !helper.ValidateNumber(user.MobileNumber) || len(user.MobileNumber) < 10 {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, helper.MOBILE_INVALID, helper.DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, helper.MOBILE_INVALID, helper.DATA)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
@@ -56,20 +66,19 @@ func (c *userauthcontroller) CreateEndUser(ctx *gin.Context) {
 	newUser, err := c.service.CreateEndUser(user)
 
 	if err != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.DATA)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
 
 	if (newUser == dto.RegisterEndUserDTO{}) {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, helper.DATA_INSERTED_FAILED, helper.DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, helper.DATA_INSERTED_FAILED, helper.DATA)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
 
 	response := helper.BuildSuccessResponse(helper.DATA_INSERTED, helper.DATA, newUser)
 	ctx.JSON(http.StatusOK, response)
-
 }
 
 func (c *userauthcontroller) CreateAdminUser(ctx *gin.Context) {
@@ -80,7 +89,7 @@ func (c *userauthcontroller) CreateAdminUser(ctx *gin.Context) {
 	structVal := sv.Struct(&user)
 
 	if structVal != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, structVal.Error(), helper.USER_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, structVal.Error(), helper.USER_DATA)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
@@ -88,7 +97,7 @@ func (c *userauthcontroller) CreateAdminUser(ctx *gin.Context) {
 	res, err := c.service.CreateAdminUser(user)
 
 	if err != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.USER_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.USER_DATA)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
@@ -110,7 +119,7 @@ func (c *userauthcontroller) AdminUserLogin(ctx *gin.Context) {
 	sv := validator.New()
 
 	if err := sv.Struct(userCredentials); err != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.USER_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.USER_DATA)
 		ctx.AbortWithStatusJSON(http.StatusForbidden, response)
 		return
 	}
@@ -118,7 +127,7 @@ func (c *userauthcontroller) AdminUserLogin(ctx *gin.Context) {
 	res, err := c.service.ValidateAdminUser(userCredentials.Email, userCredentials.Password)
 
 	if err != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.USER_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.USER_DATA)
 		ctx.AbortWithStatusJSON(http.StatusForbidden, response)
 		return
 	}
@@ -140,7 +149,7 @@ func (c *userauthcontroller) GetUserById(ctx *gin.Context) {
 	}
 
 	if !primitive.IsValidObjectID(userId) {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, helper.INVALID_ID, helper.USER_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, helper.INVALID_ID, helper.USER_DATA)
 		ctx.AbortWithStatusJSON(http.StatusUnprocessableEntity, response)
 		return
 	}
@@ -148,7 +157,7 @@ func (c *userauthcontroller) GetUserById(ctx *gin.Context) {
 	objId, objErr := primitive.ObjectIDFromHex(userId)
 
 	if objErr != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, objErr.Error(), helper.USER_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, objErr.Error(), helper.USER_DATA)
 		ctx.AbortWithStatusJSON(http.StatusUnprocessableEntity, response)
 		return
 	}
@@ -156,7 +165,7 @@ func (c *userauthcontroller) GetUserById(ctx *gin.Context) {
 	res, err := c.service.GetUserById(objId)
 
 	if err != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.USER_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.USER_DATA)
 		ctx.AbortWithStatusJSON(http.StatusUnprocessableEntity, response)
 		return
 	}
@@ -177,20 +186,19 @@ func (c *userauthcontroller) UpdateAdminUser(ctx *gin.Context) {
 	sv := validator.New()
 
 	if svErr := sv.Struct(&userToUpdate); svErr != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, svErr.Error(), helper.USER_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, svErr.Error(), helper.USER_DATA)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
 
 	if upErr := c.service.UpdateAdminUserInfo(userToUpdate); upErr != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, upErr.Error(), helper.USER_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, upErr.Error(), helper.USER_DATA)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
 
 	response := helper.BuildSuccessResponse(helper.UPDATE_SUCCESS, helper.USER_DATA, helper.EmptyObj{})
 	ctx.JSON(http.StatusOK, response)
-
 }
 
 func (c *userauthcontroller) DeleteAdminUser(ctx *gin.Context) {
@@ -202,7 +210,7 @@ func (c *userauthcontroller) DeleteAdminUser(ctx *gin.Context) {
 	}
 
 	if !primitive.IsValidObjectID(userId) {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, helper.INVALID_ID, helper.USER_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, helper.INVALID_ID, helper.USER_DATA)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
@@ -210,7 +218,7 @@ func (c *userauthcontroller) DeleteAdminUser(ctx *gin.Context) {
 	objId, objErr := primitive.ObjectIDFromHex(userId)
 
 	if objErr != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, objErr.Error(), helper.USER_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, objErr.Error(), helper.USER_DATA)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
@@ -218,21 +226,20 @@ func (c *userauthcontroller) DeleteAdminUser(ctx *gin.Context) {
 	err := c.service.DeleteAdminUser(objId)
 
 	if err != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.USER_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.USER_DATA)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
 
 	response := helper.BuildSuccessResponse(helper.DELETE_SUCCESS, helper.USER_DATA, helper.EmptyObj{})
 	ctx.JSON(http.StatusOK, response)
-
 }
 
 func (c *userauthcontroller) GetAllAdminUser(ctx *gin.Context) {
 	res, err := c.service.GetAllAdminUsers()
 
 	if err != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.USER_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.USER_DATA)
 		ctx.AbortWithStatusJSON(http.StatusForbidden, response)
 		return
 	}
@@ -253,7 +260,7 @@ func (c *userauthcontroller) AddAdminUserAddress(ctx *gin.Context) {
 	userId, userIdConErr := primitive.ObjectIDFromHex(helper.USER_ID)
 
 	if userIdConErr != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, userIdConErr.Error(), helper.USER_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, userIdConErr.Error(), helper.USER_DATA)
 		ctx.AbortWithStatusJSON(http.StatusUnprocessableEntity, response)
 		return
 	}
@@ -263,7 +270,7 @@ func (c *userauthcontroller) AddAdminUserAddress(ctx *gin.Context) {
 	sv := validator.New()
 
 	if svErr := sv.Struct(&addressToCreate); svErr != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, svErr.Error(), helper.USER_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, svErr.Error(), helper.USER_DATA)
 		ctx.AbortWithStatusJSON(http.StatusUnprocessableEntity, response)
 		return
 	}
@@ -271,7 +278,7 @@ func (c *userauthcontroller) AddAdminUserAddress(ctx *gin.Context) {
 	err := c.service.AddAdminUserAddress(addressToCreate)
 
 	if err != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.USER_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.USER_DATA)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
@@ -284,7 +291,7 @@ func (c *userauthcontroller) GetAdminUserAdrress(ctx *gin.Context) {
 	userId, err := primitive.ObjectIDFromHex(helper.USER_ID)
 
 	if err != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.USER_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.USER_DATA)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
@@ -292,7 +299,7 @@ func (c *userauthcontroller) GetAdminUserAdrress(ctx *gin.Context) {
 	address, addErr := c.service.GetAdminUserAddress(userId)
 
 	if addErr != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, addErr.Error(), helper.USER_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, addErr.Error(), helper.USER_DATA)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
@@ -313,7 +320,7 @@ func (c *userauthcontroller) UpdateAdminAddress(ctx *gin.Context) {
 	sv := validator.New()
 
 	if svErr := sv.Struct(&addressToUpdate); svErr != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, svErr.Error(), helper.USER_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, svErr.Error(), helper.USER_DATA)
 		ctx.AbortWithStatusJSON(http.StatusUnprocessableEntity, response)
 		return
 	}
@@ -321,12 +328,49 @@ func (c *userauthcontroller) UpdateAdminAddress(ctx *gin.Context) {
 	err := c.service.UpdateAdminAddress(addressToUpdate)
 
 	if err != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.USER_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.USER_DATA)
 		ctx.AbortWithStatusJSON(http.StatusUnprocessableEntity, response)
 		return
 	}
 
 	response := helper.BuildSuccessResponse(helper.UPDATE_SUCCESS, helper.USER_DATA, helper.EmptyObj{})
 	ctx.JSON(http.StatusOK, response)
+}
 
+func (c *userauthcontroller) SaveTokens(ctx *gin.Context) {
+	var token_data notificationmanager.TokenRequestDTO
+
+	if err := ctx.ShouldBindJSON(&token_data); err != nil {
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.USER_DATA)
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
+	}
+
+	tokenData := notificationmanager.TokenData{
+		Token:     token_data.Token,
+		CreatedAt: primitive.NewDateTimeFromTime(time.Now()),
+	}
+
+	if err := c.notificationService.AddNewToken(tokenData); err != nil {
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.USER_DATA)
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, response)
+		return
+	}
+
+	response := helper.BuildSuccessResponse("Token has been saved !", helper.USER_DATA, helper.EmptyObj{})
+	ctx.JSON(http.StatusOK, response)
+
+}
+
+func (c *userauthcontroller) GetTokens(ctx *gin.Context) {
+	tokens, err := c.notificationService.GetTokens()
+
+	if err != nil {
+		response := helper.BuildFailedResponse(helper.FETCHED_FAILED, err.Error(), helper.USER_DATA)
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, response)
+		return
+	}
+
+	response := helper.BuildSuccessResponse(helper.FETCHED_SUCCESS, "tokenData", tokens)
+	ctx.JSON(http.StatusOK, response)
 }

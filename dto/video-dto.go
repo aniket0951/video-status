@@ -21,7 +21,7 @@ type GetVideoCategoriesDTO struct {
 type CreateVideosDTO struct {
 	VideoTitle        string             `json:"video_title" validate:"required"`
 	VideoDescription  string             `json:"video_desc" validate:"required"`
-	IsVideoActive     bool               `json:"is_active" validate:"required"`
+	IsVideoActive     bool               `json:"is_active"`
 	VideoCategoriesID primitive.ObjectID `json:"video_cat_id" validate:"required"`
 }
 
@@ -44,7 +44,8 @@ type GetVideosDTO struct {
 	IsVideoActive     bool               `json:"is_active,omitempty" `
 	VideoCategoriesID string             `json:"video_cat_id,omitempty" `
 	VideoPath         string             `json:"video_path,omitempty" `
-	DownloadCount     int32              `json:"download_count,omitempty"`
+	DownloadCount     int32              `json:"download_count"`
+	VideoThumbnail    string             `json:"video_thumbnail"`
 	CreatedAt         primitive.DateTime `json:"created_at,omitempty" `
 	UpdatedAt         primitive.DateTime `json:"updated_at,omitempty" `
 }

@@ -2,12 +2,17 @@ package services
 
 import (
 	"errors"
+	"fmt"
+	"io/ioutil"
 	"mime/multipart"
+	"path"
 	"reflect"
 	"strings"
 
+	"firebase.google.com/go/messaging"
 	"github.com/aniket0951/Chatrapati-Maharaj/dto"
 	"github.com/aniket0951/Chatrapati-Maharaj/models"
+	notificationmanager "github.com/aniket0951/Chatrapati-Maharaj/notification_manager"
 	"github.com/aniket0951/Chatrapati-Maharaj/repositories"
 	"github.com/mashingan/smapping"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -20,24 +25,26 @@ type VideoService interface {
 	DeleteCategory(categoryId primitive.ObjectID) error
 	DuplicateCategory(categoryName string) (bool, error)
 
-	AddVideo(video dto.CreateVideosDTO, file multipart.File) error
+	AddVideo(video dto.CreateVideosDTO, file, thumbnail multipart.File) error
 	GetAllVideos() ([]dto.GetVideosDTO, error)
 	UpdateVideo(video dto.UpdateVideoDTO) error
 	DeleteVideo(videoId primitive.ObjectID) error
 
 	FetchInActiveVideos() ([]dto.GetVideosDTO, error)
-	ActiveVideo(video_id primitive.ObjectID) error
+	ActiveVideo(video_id primitive.ObjectID, isActive bool) error
 	IncreaseDownloadCount(video_id primitive.ObjectID) error
 	GetVideoByID(videoId primitive.ObjectID) (dto.GetVideosDTO, error)
 }
 
 type videocategoriesservice struct {
-	repo repositories.VideoRepository
+	repo                repositories.VideoRepository
+	notificationService notificationmanager.NotificationManager
 }
 
-func NewVideoCategoriesService(repo repositories.VideoRepository) VideoService {
+func NewVideoCategoriesService(repo repositories.VideoRepository, notificationManager notificationmanager.NotificationManager) VideoService {
 	return &videocategoriesservice{
-		repo: repo,
+		repo:                repo,
+		notificationService: notificationManager,
 	}
 }
 
@@ -116,7 +123,7 @@ func (ser *videocategoriesservice) DuplicateCategory(categoryName string) (bool,
 	return ser.repo.DuplicateCategory(categoryName)
 }
 
-func (ser *videocategoriesservice) AddVideo(video dto.CreateVideosDTO, file multipart.File) error {
+func (ser *videocategoriesservice) AddVideo(video dto.CreateVideosDTO, file, thumbnailFile multipart.File) error {
 	videoToCreate := models.Videos{}
 
 	if smpErr := smapping.FillStruct(&videoToCreate, smapping.MapFields(video)); smpErr != nil {
@@ -129,12 +136,43 @@ func (ser *videocategoriesservice) AddVideo(video dto.CreateVideosDTO, file mult
 		return isCatErr
 	}
 
+	// save the video thumbnail
+	thumbnail_path, s_err := SaveThumbnail(thumbnailFile)
+
+	if s_err != nil {
+		return s_err
+	}
+
+	videoToCreate.VideoThumbnail = thumbnail_path
+
 	err := ser.repo.AddVideo(videoToCreate, file)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func SaveThumbnail(file multipart.File) (string, error) {
+	tempFile, err := ioutil.TempFile("static/thumbnail", "thumbnail-*.png")
+
+	if err != nil {
+		return "", err
+	}
+
+	defer tempFile.Close()
+
+	fileBytes, fileReader := ioutil.ReadAll(file)
+
+	if fileReader != nil {
+		return "", fileReader
+	}
+
+	tempFile.Write(fileBytes)
+	defer file.Close()
+	defer tempFile.Close()
+
+	return path.Base(tempFile.Name()), nil
 }
 
 func (ser *videocategoriesservice) GetAllVideos() ([]dto.GetVideosDTO, error) {
@@ -154,6 +192,11 @@ func (ser *videocategoriesservice) GetAllVideos() ([]dto.GetVideosDTO, error) {
 		temp := dto.GetVideosDTO{}
 		smapping.FillStruct(&temp, smapping.MapFields(res[i]))
 		videoPath := "http://localhost:5000/static/" + temp.VideoPath
+		if res[i].VideoThumbnail == "" {
+			temp.VideoThumbnail = "http://192.168.0.109:5000/static/wallpaper/wallpaper-163721182.png"
+		} else {
+			temp.VideoThumbnail = "http://localhost:5000/static/thumbnail/" + res[i].VideoThumbnail
+		}
 		temp.VideoPath = videoPath
 		temp.DownloadCount = res[i].DownloadCount
 		allVideos = append(allVideos, temp)
@@ -209,8 +252,36 @@ func (ser *videocategoriesservice) FetchInActiveVideos() ([]dto.GetVideosDTO, er
 	return inActiveVideos, nil
 }
 
-func (ser *videocategoriesservice) ActiveVideo(video_id primitive.ObjectID) error {
-	return ser.repo.ActiveVideo(video_id)
+func (ser *videocategoriesservice) ActiveVideo(video_id primitive.ObjectID, isActive bool) error {
+	err := ser.repo.ActiveVideo(video_id, isActive)
+
+	if err != nil {
+		return err
+	}
+
+	// if video is get active
+	if isActive {
+		// fetch video by id
+		video, err := ser.repo.GetVideoByID(video_id)
+
+		if err != nil {
+			fmt.Println("Fetch Video By ID Error : ", err)
+			return nil
+		}
+		thumbnail := "http://192.168.0.109:5000/" + video.VideoThumbnail
+		notificationMessage := messaging.Message{
+			Notification: &messaging.Notification{
+				Title:    "Jay Bhavani !",
+				Body:     video.VideoDescription,
+				ImageURL: thumbnail,
+			},
+		}
+
+		// notify all user
+		ser.notificationService.NotifyAllUser(&notificationMessage)
+	}
+
+	return nil
 }
 
 func (ser *videocategoriesservice) IncreaseDownloadCount(video_id primitive.ObjectID) error {

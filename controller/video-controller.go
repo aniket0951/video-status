@@ -51,7 +51,7 @@ func (c *videocontroller) CreateCategory(ctx *gin.Context) {
 	sv := validator.New()
 
 	if svErr := sv.Struct(category); svErr != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, svErr.Error(), helper.VIDEO_CATEGORY, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, svErr.Error(), helper.VIDEO_CATEGORY)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
@@ -59,7 +59,7 @@ func (c *videocontroller) CreateCategory(ctx *gin.Context) {
 	res, err := c.service.CreateCategory(category)
 
 	if err != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.VIDEO_CATEGORY, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.VIDEO_CATEGORY)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
@@ -81,7 +81,7 @@ func (c *videocontroller) UpdateCategory(ctx *gin.Context) {
 	sv := validator.New()
 
 	if svErr := sv.Struct(category); svErr != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, svErr.Error(), helper.VIDEO_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, svErr.Error(), helper.VIDEO_DATA)
 		ctx.AbortWithStatusJSON(http.StatusUnprocessableEntity, response)
 		return
 	}
@@ -89,7 +89,7 @@ func (c *videocontroller) UpdateCategory(ctx *gin.Context) {
 	res, err := c.service.UpdateCategory(category)
 
 	if err != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.VIDEO_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.VIDEO_DATA)
 		ctx.AbortWithStatusJSON(http.StatusUnprocessableEntity, response)
 		return
 	}
@@ -102,7 +102,7 @@ func (c *videocontroller) GetAllCategory(ctx *gin.Context) {
 	res, err := c.service.GetAllCategory()
 
 	if err != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.VIDEO_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.VIDEO_DATA)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
@@ -122,13 +122,13 @@ func (c *videocontroller) DeleteCategory(ctx *gin.Context) {
 	objId, err := primitive.ObjectIDFromHex(categoryId)
 
 	if err != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.VIDEO_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.VIDEO_DATA)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
 
 	if !primitive.IsValidObjectID(string(categoryId)) {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, helper.INVALID_ID, helper.VIDEO_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, helper.INVALID_ID, helper.VIDEO_DATA)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
@@ -136,7 +136,7 @@ func (c *videocontroller) DeleteCategory(ctx *gin.Context) {
 	delErr := c.service.DeleteCategory(objId)
 
 	if delErr != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, delErr.Error(), helper.VIDEO_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, delErr.Error(), helper.VIDEO_DATA)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
@@ -147,6 +147,7 @@ func (c *videocontroller) DeleteCategory(ctx *gin.Context) {
 
 func (c *videocontroller) AddVideo(ctx *gin.Context) {
 	file, _, _ := ctx.Request.FormFile("video")
+	thumbailFile, _, _ := ctx.Request.FormFile("thumbnail")
 	title := ctx.Request.PostForm.Get("title")
 	desc := ctx.Request.PostForm.Get("desc")
 	videoCatId := ctx.Request.PostForm.Get("video_cat_id")
@@ -163,15 +164,15 @@ func (c *videocontroller) AddVideo(ctx *gin.Context) {
 	sv := validator.New()
 
 	if svErr := sv.Struct(&videoToCreate); svErr != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, svErr.Error(), helper.VIDEO_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, svErr.Error(), helper.VIDEO_DATA)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
 
-	err := c.service.AddVideo(videoToCreate, file)
+	err := c.service.AddVideo(videoToCreate, file, thumbailFile)
 
 	if err != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.VIDEO_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.VIDEO_DATA)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
@@ -181,26 +182,24 @@ func (c *videocontroller) AddVideo(ctx *gin.Context) {
 }
 
 func (c *videocontroller) GetAllVideos(ctx *gin.Context) {
-	var getAllVideos dto.GetAllVideosRequestDTO
-
-	if err := ctx.ShouldBindQuery(&getAllVideos); err != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, helper.CheckErr(err.Error()), helper.VIDEO_DATA, helper.EmptyObj{})
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+	var tag = ctx.Param("tag")
+	if tag == "" {
+		helper.RequestBodyEmptyResponse(ctx)
 		return
 	}
 	var res []dto.GetVideosDTO
 	var err error
 
-	if getAllVideos.Tag == "ACTIVE" {
+	if tag == "ACTIVE" {
 		res, err = c.service.GetAllVideos()
 	}
-	if getAllVideos.Tag == "INACTIVE" {
+	if tag == "INACTIVE" {
 		c.FetchInActiveVideos(ctx)
 		return
 	}
 
 	if err != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.VIDEO_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.VIDEO_DATA)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
@@ -222,7 +221,7 @@ func (c *videocontroller) UpdateVideo(ctx *gin.Context) {
 	err := c.service.UpdateVideo(videoToUpdate)
 
 	if err != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.VIDEO_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.VIDEO_DATA)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
@@ -243,7 +242,7 @@ func (c *videocontroller) DeleteVideo(ctx *gin.Context) {
 	}
 
 	if !primitive.IsValidObjectID(videoId) {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, "Invalid video id provided please check video id", helper.VIDEO_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, "Invalid video id provided please check video id", helper.VIDEO_DATA)
 		ctx.AbortWithStatusJSON(http.StatusUnprocessableEntity, response)
 		return
 	}
@@ -251,7 +250,7 @@ func (c *videocontroller) DeleteVideo(ctx *gin.Context) {
 	objId, objErr := primitive.ObjectIDFromHex(videoId)
 
 	if objErr != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, objErr.Error(), helper.VIDEO_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, objErr.Error(), helper.VIDEO_DATA)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
@@ -259,7 +258,7 @@ func (c *videocontroller) DeleteVideo(ctx *gin.Context) {
 	err := c.service.DeleteVideo(objId)
 
 	if err != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.VIDEO_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.VIDEO_DATA)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
@@ -272,7 +271,7 @@ func (c *videocontroller) FetchInActiveVideos(ctx *gin.Context) {
 	res, err := c.service.FetchInActiveVideos()
 
 	if err != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.VIDEO_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.VIDEO_DATA)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
@@ -284,9 +283,10 @@ func (c *videocontroller) FetchInActiveVideos(ctx *gin.Context) {
 // make a inactive video to active video
 func (c *videocontroller) ActiveVideo(ctx *gin.Context) {
 	video_id := ctx.Param("videoId")
+	tag := ctx.Param("tag")
 
 	if !primitive.IsValidObjectID(video_id) {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, helper.INVALID_ID, helper.USER_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, helper.INVALID_ID, helper.USER_DATA)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
@@ -294,15 +294,20 @@ func (c *videocontroller) ActiveVideo(ctx *gin.Context) {
 	objId, objErr := primitive.ObjectIDFromHex(video_id)
 
 	if objErr != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, objErr.Error(), helper.USER_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, objErr.Error(), helper.USER_DATA)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
+	var isActive bool
 
-	err := c.service.ActiveVideo(objId)
+	if tag == "ACTIVE" {
+		isActive = true
+	}
+
+	err := c.service.ActiveVideo(objId, isActive)
 
 	if err != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.VIDEO_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.VIDEO_DATA)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
@@ -315,7 +320,7 @@ func (c *videocontroller) IncreaseDownloadCount(ctx *gin.Context) {
 	video_id := ctx.Param("videoId")
 
 	if !primitive.IsValidObjectID(video_id) {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, helper.INVALID_ID, helper.USER_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, helper.INVALID_ID, helper.USER_DATA)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
@@ -323,7 +328,7 @@ func (c *videocontroller) IncreaseDownloadCount(ctx *gin.Context) {
 	objId, objErr := primitive.ObjectIDFromHex(video_id)
 
 	if objErr != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, objErr.Error(), helper.USER_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, objErr.Error(), helper.USER_DATA)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
@@ -331,7 +336,7 @@ func (c *videocontroller) IncreaseDownloadCount(ctx *gin.Context) {
 	err := c.service.IncreaseDownloadCount(objId)
 
 	if err != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.VIDEO_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.VIDEO_DATA)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
@@ -344,7 +349,7 @@ func (c *videocontroller) GetVideoByID(ctx *gin.Context) {
 	video_id := ctx.Param("videoId")
 
 	if !primitive.IsValidObjectID(video_id) {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, helper.INVALID_ID, helper.USER_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, helper.INVALID_ID, helper.USER_DATA)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
@@ -352,7 +357,7 @@ func (c *videocontroller) GetVideoByID(ctx *gin.Context) {
 	objId, objErr := primitive.ObjectIDFromHex(video_id)
 
 	if objErr != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, objErr.Error(), helper.USER_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, objErr.Error(), helper.USER_DATA)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
@@ -360,7 +365,7 @@ func (c *videocontroller) GetVideoByID(ctx *gin.Context) {
 	video, err := c.service.GetVideoByID(objId)
 
 	if err != nil {
-		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.VIDEO_DATA, helper.EmptyObj{})
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.VIDEO_DATA)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}

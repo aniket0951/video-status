@@ -10,7 +10,7 @@ import (
 
 var (
 	videoRepo       repositories.VideoRepository = repositories.NewVideoCategoriesRepository()
-	videoService    services.VideoService        = services.NewVideoCategoriesService(videoRepo)
+	videoService    services.VideoService        = services.NewVideoCategoriesService(videoRepo, notificationManager)
 	videoController controller.VideoController   = controller.NewVideoController(videoService)
 )
 
@@ -27,7 +27,7 @@ func VideoRouter(route *gin.Engine) {
 	videos := route.Group("/api/videos", middleware.AuthorizeJWT(jwtService))
 	{
 		videos.POST("/add-video", videoController.AddVideo)
-		videos.GET("/get-all-videos", videoController.GetAllVideos)
+		videos.GET("/get-all-videos/:tag", videoController.GetAllVideos)
 		videos.PUT("/update-video", videoController.UpdateVideo)
 		videos.DELETE("/delete-video", videoController.DeleteVideo)
 	}
@@ -35,8 +35,8 @@ func VideoRouter(route *gin.Engine) {
 	inActiveVideo := route.Group("/api")
 	{
 		inActiveVideo.GET("/inactive-video", videoController.FetchInActiveVideos)
-		inActiveVideo.POST("/inactive-video/:videoId", videoController.ActiveVideo)
-		inActiveVideo.GET("/get-all-videos", videoController.GetAllVideos)
+		inActiveVideo.POST("/inactive-video/:videoId/:tag", videoController.ActiveVideo)
+
 		inActiveVideo.GET("/video/:videoId", videoController.GetVideoByID)
 	}
 

@@ -34,5 +34,9 @@ var DATA = "data"
 var USER_DATA = "user_data"
 var VIDEO_DATA = "video_data"
 var VIDEO_CATEGORY = "video_category"
+var WALLPAPER_DATA = "wallpaper_data"
+
+// Wallpapepr Catergory like recent, old, new, most liked etc
+var RECENT = "recent"
 
 var USER_ID = ""

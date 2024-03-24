@@ -21,6 +21,7 @@ type Videos struct {
 	VideoCategoriesID primitive.ObjectID `json:"video_cat_id" bson:"v_cat_id"`
 	VideoPath         string             `json:"video_path" bson:"video_path"`
 	DownloadCount     int32              `json:"download_count" bson:"download_count"`
+	VideoThumbnail    string             `json:"video_thumbnail" bson:"video_thumbnail"`
 	CreatedAt         primitive.DateTime `json:"created_at" bson:"created_at"`
 	UpdatedAt         primitive.DateTime `json:"updated_at" bson:"updated_at"`
 }

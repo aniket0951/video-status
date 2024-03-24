@@ -43,8 +43,8 @@ func BuildSuccessResponse(msg string, dataName string, data interface{}) map[str
 	return response
 }
 
-func BuildFailedResponse(msg string, err string, dataName string, data interface{}) map[string]interface{} {
-	response := ResponseBuilder(msg, err, false, dataName, data, false)
+func BuildFailedResponse(msg string, err string, dataName string) map[string]interface{} {
+	response := ResponseBuilder(msg, err, false, dataName, EmptyObj{}, false)
 	return response
 }
 

@@ -38,7 +38,7 @@ type VideoRepository interface {
 	DeleteVideo(videoId primitive.ObjectID) error
 
 	FetchInActiveVideos() ([]models.Videos, error)
-	ActiveVideo(video_id primitive.ObjectID) error
+	ActiveVideo(video_id primitive.ObjectID, isActive bool) error
 	IncreaseDownloadCount(video_id primitive.ObjectID) error
 
 	Init() (context.Context, context.CancelFunc)
@@ -351,12 +351,12 @@ func (db *videocategoriesrepo) FetchInActiveVideos() ([]models.Videos, error) {
 	return result, err
 }
 
-func (db *videocategoriesrepo) ActiveVideo(video_id primitive.ObjectID) error {
+func (db *videocategoriesrepo) ActiveVideo(video_id primitive.ObjectID, isActive bool) error {
 	ctx, cancel := db.Init()
 	defer cancel()
 	update := bson.M{
 		"$set": bson.M{
-			"is_active":  true,
+			"is_active":  isActive,
 			"updated_at": time.Now(),
 		},
 	}
