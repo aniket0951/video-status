@@ -8,6 +8,11 @@ import (
 	"github.com/mashingan/smapping"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"mime/multipart"
+	"strings"
+)
+
+var (
+	userVideoRepo = repositories.NewUserVideoRepository()
 )
 
 type VideoService interface {
@@ -17,19 +22,25 @@ type VideoService interface {
 	DeleteCategory(categoryId primitive.ObjectID) error
 	DuplicateCategory(categoryName string) (bool, error)
 
-	AddVideo(video dto.CreateVideosDTO, file multipart.File) error
+	AddVideo(video dto.CreateVideosDTO, file multipart.File) (primitive.ObjectID, error)
 	GetAllVideos() ([]dto.GetVideosDTO, error)
 	UpdateVideo(video dto.UpdateVideoDTO) error
+	UpdateVideoVerification(video models.Videos) error
 	DeleteVideo(videoId primitive.ObjectID) error
+	//GetVideoById()
+
+	VideoFullDetails(videoId primitive.ObjectID) (interface{}, error)
 }
 
 type videocategoriesservice struct {
-	repo repositories.VideoRepository
+	repo          repositories.VideoRepository
+	userVideoRepo repositories.UserVideoRepository
 }
 
 func NewVideoCategoriesService(repo repositories.VideoRepository) VideoService {
 	return &videocategoriesservice{
-		repo: repo,
+		repo:          repo,
+		userVideoRepo: userVideoRepo,
 	}
 }
 
@@ -55,7 +66,7 @@ func (ser *videocategoriesservice) CreateCategory(category dto.CreateVideoCatego
 
 	newCategory := dto.GetVideoCategoriesDTO{}
 
-	smapping.FillStruct(&newCategory, smapping.MapFields(res))
+	_ = smapping.FillStruct(&newCategory, smapping.MapFields(res))
 
 	return newCategory, nil
 }
@@ -74,7 +85,7 @@ func (ser *videocategoriesservice) UpdateCategory(category dto.CreateVideoCatego
 	}
 
 	newCategory := dto.GetVideoCategoriesDTO{}
-	smapping.FillStruct(&newCategory, smapping.MapFields(result))
+	_ = smapping.FillStruct(&newCategory, smapping.MapFields(result))
 	return newCategory, nil
 }
 
@@ -85,11 +96,11 @@ func (ser *videocategoriesservice) GetAllCategory() ([]dto.GetVideoCategoriesDTO
 		return []dto.GetVideoCategoriesDTO{}, err
 	}
 
-	allCategory := []dto.GetVideoCategoriesDTO{}
+	var allCategory []dto.GetVideoCategoriesDTO
 
 	for i := range res {
 		temp := dto.GetVideoCategoriesDTO{}
-		smapping.FillStruct(&temp, smapping.MapFields(res[i]))
+		_ = smapping.FillStruct(&temp, smapping.MapFields(res[i]))
 
 		allCategory = append(allCategory, temp)
 	}
@@ -108,25 +119,25 @@ func (ser *videocategoriesservice) DuplicateCategory(categoryName string) (bool,
 	return ser.repo.DuplicateCategory(categoryName)
 }
 
-func (ser *videocategoriesservice) AddVideo(video dto.CreateVideosDTO, file multipart.File) error {
+func (ser *videocategoriesservice) AddVideo(video dto.CreateVideosDTO, file multipart.File) (primitive.ObjectID, error) {
+	_, isCatErr := ser.repo.GetCategoryById(video.VideoCategoriesID)
+
+	if isCatErr != nil {
+		return primitive.NewObjectID(), isCatErr
+	}
+
 	videoToCreate := models.Videos{}
 
 	if smpErr := smapping.FillStruct(&videoToCreate, smapping.MapFields(video)); smpErr != nil {
-		return smpErr
+		return primitive.NewObjectID(), smpErr
 	}
 
-	_, isCatErr := ser.repo.GetCategoryById(videoToCreate.VideoCategoriesID)
-
-	if isCatErr != nil {
-		return isCatErr
-	}
-
-	err := ser.repo.AddVideo(videoToCreate, file)
+	res, err := ser.repo.AddVideo(videoToCreate, file)
 	if err != nil {
-		return err
+		return primitive.NewObjectID(), err
 	}
 
-	return nil
+	return res, nil
 }
 
 func (ser *videocategoriesservice) GetAllVideos() ([]dto.GetVideosDTO, error) {
@@ -136,7 +147,7 @@ func (ser *videocategoriesservice) GetAllVideos() ([]dto.GetVideosDTO, error) {
 		return []dto.GetVideosDTO{}, nil
 	}
 
-	allVideos := []dto.GetVideosDTO{}
+	var allVideos []dto.GetVideosDTO
 
 	if len(res) == 0 {
 		return []dto.GetVideosDTO{}, errors.New("videos not availabel")
@@ -144,8 +155,14 @@ func (ser *videocategoriesservice) GetAllVideos() ([]dto.GetVideosDTO, error) {
 
 	for i := range res {
 		temp := dto.GetVideosDTO{}
-		smapping.FillStruct(&temp, smapping.MapFields(res[i]))
-		videoPath := "http://localhost:5000/" + temp.VideoPath
+		_ = smapping.FillStruct(&temp, smapping.MapFields(res[i]))
+		videoPath := ""
+		if strings.Contains(temp.VideoPath, "static") {
+			videoPath = "http://localhost:5000/" + temp.VideoPath
+		} else {
+			videoPath = "http://localhost:5000/static/" + temp.VideoPath
+		}
+
 		temp.VideoPath = videoPath
 		allVideos = append(allVideos, temp)
 	}
@@ -164,8 +181,16 @@ func (ser *videocategoriesservice) UpdateVideo(video dto.UpdateVideoDTO) error {
 
 }
 
+func (ser *videocategoriesservice) UpdateVideoVerification(video models.Videos) error {
+	return ser.repo.UpdateVideoVerification(video)
+}
+
 func (ser *videocategoriesservice) DeleteVideo(videoId primitive.ObjectID) error {
 	err := ser.repo.DeleteVideo(videoId)
 
 	return err
+}
+
+func (ser *videocategoriesservice) VideoFullDetails(videoId primitive.ObjectID) (interface{}, error) {
+	return ser.repo.VideoFullDetails(videoId)
 }

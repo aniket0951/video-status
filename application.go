@@ -28,7 +28,7 @@ const (
 func main() {
 	router := gin.Default()
 	router.Use(cors.New(CORSConfig()))
-
+	gin.SetMode(gin.ReleaseMode)
 	router.Static("static", "static")
 
 	router.GET("/", func(ctx *gin.Context) {
@@ -42,6 +42,7 @@ func main() {
 
 	routers.UserAuthRouter(router)
 	routers.VideoRouter(router)
+	routers.VideoVerificationRoute(router)
 
 	router.Run(":5000")
 }

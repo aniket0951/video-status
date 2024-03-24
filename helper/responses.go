@@ -58,3 +58,8 @@ func RequestBodyEmptyResponse(ctx *gin.Context) {
 	ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 
 }
+
+func BuildUnprocessableEntityResponse(ctx *gin.Context, err error) {
+	response := ResponseBuilder(FAILED_PROCESS, err.Error(), false, DATA, EmptyObj{}, false)
+	ctx.AbortWithStatusJSON(http.StatusUnprocessableEntity, response)
+}

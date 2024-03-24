@@ -9,9 +9,12 @@ import (
 )
 
 var (
-	videoRepo       repositories.VideoRepository = repositories.NewVideoCategoriesRepository()
-	videoService    services.VideoService        = services.NewVideoCategoriesService(videoRepo)
-	videoController controller.VideoController   = controller.NewVideoController(videoService)
+	videoRepo           = repositories.NewVideoCategoriesRepository()
+	userVideoRepo       = repositories.NewUserVideoRepository()
+	userVideoService    = services.NewUserVideoService(userVideoRepo)
+	videoService        = services.NewVideoCategoriesService(videoRepo)
+	verificationService = services.NewVideoVerificationService(verificationRepository)
+	videoController     = controller.NewVideoController(videoService, userVideoService, verificationService)
 )
 
 func VideoRouter(route *gin.Engine) {
@@ -30,5 +33,10 @@ func VideoRouter(route *gin.Engine) {
 		videos.GET("/get-all-videos", videoController.GetAllVideos)
 		videos.PUT("/update-video", videoController.UpdateVideo)
 		videos.DELETE("/delete-video", videoController.DeleteVideo)
+	}
+
+	videoFullDetails := route.Group("/api/video-detail", middleware.AuthorizeJWT(jwtService))
+	{
+		videoFullDetails.GET("/video-full-details", videoController.VideoFullDetails)
 	}
 }
