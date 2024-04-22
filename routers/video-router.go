@@ -9,9 +9,18 @@ import (
 )
 
 var (
+<<<<<<< HEAD
 	videoRepo       repositories.VideoRepository = repositories.NewVideoCategoriesRepository()
 	videoService    services.VideoService        = services.NewVideoCategoriesService(videoRepo, notificationManager)
 	videoController controller.VideoController   = controller.NewVideoController(videoService)
+=======
+	videoRepo           = repositories.NewVideoCategoriesRepository()
+	userVideoRepo       = repositories.NewUserVideoRepository()
+	userVideoService    = services.NewUserVideoService(userVideoRepo)
+	videoService        = services.NewVideoCategoriesService(videoRepo)
+	verificationService = services.NewVideoVerificationService(verificationRepository)
+	videoController     = controller.NewVideoController(videoService, userVideoService, verificationService)
+>>>>>>> 9c19887285b2026e2c65966dca4df5157c7dfcd3
 )
 
 func VideoRouter(route *gin.Engine) {
@@ -32,6 +41,7 @@ func VideoRouter(route *gin.Engine) {
 		videos.DELETE("/delete-video", videoController.DeleteVideo)
 	}
 
+<<<<<<< HEAD
 	inActiveVideo := route.Group("/api")
 	{
 		inActiveVideo.GET("/inactive-video", videoController.FetchInActiveVideos)
@@ -43,5 +53,13 @@ func VideoRouter(route *gin.Engine) {
 	download := route.Group("/api")
 	{
 		download.POST("/download-increase/:videoId", videoController.IncreaseDownloadCount)
+
+		// share video link
+		download.GET("/shared-video/:fileKey", videoController.GenerateSignVideoURL)
+=======
+	videoFullDetails := route.Group("/api/video-detail", middleware.AuthorizeJWT(jwtService))
+	{
+		videoFullDetails.GET("/video-full-details", videoController.VideoFullDetails)
+>>>>>>> 9c19887285b2026e2c65966dca4df5157c7dfcd3
 	}
 }

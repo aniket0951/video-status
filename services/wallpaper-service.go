@@ -3,9 +3,9 @@ package services
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"log"
 	"mime/multipart"
-	"path"
+	"os"
 	"reflect"
 	"strings"
 	"time"
@@ -16,12 +16,13 @@ import (
 	"github.com/aniket0951/Chatrapati-Maharaj/models"
 	notificationmanager "github.com/aniket0951/Chatrapati-Maharaj/notification_manager"
 	"github.com/aniket0951/Chatrapati-Maharaj/repositories"
+	"github.com/aniket0951/Chatrapati-Maharaj/s3"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type WallPaperService interface {
 	AddWallPaper(file multipart.File, wallPaper models.WallPaper) error
-	GetWallPapers(isActive bool) (dto.GetWallPapersDTO, error)
+	GetWallPapers(args dto.GetWallPaperRequest) (dto.GetWallPapersDTO, error)
 	ActiveInActiveWallPaper(videoId string, isActive bool) error
 	WallPaperLiked(wallPaperId string) error
 	FetchRecentWallPapers(isActive bool) ([]models.WallPaper, error)
@@ -40,29 +41,20 @@ func NewWallPaperService(repo repositories.WallPaperRepository, notificationMana
 }
 
 func (serv *service) AddWallPaper(file multipart.File, wallPaper models.WallPaper) error {
-	tempFile, err := ioutil.TempFile("static/wallpaper", "wallpaper-*.png")
-
+	fileKey, filePath, err := helper.LocalFileWrite(file, "static/wallpaper", "wallpaper-*.png")
 	if err != nil {
 		return err
 	}
-
-	defer tempFile.Close()
-
-	fileBytes, fileReader := ioutil.ReadAll(file)
-
-	if fileReader != nil {
-		return fileReader
+	var contentType = "image/png"
+	if err := s3.UploadFileToS3(filePath, fileKey, contentType); err != nil {
+		return err
 	}
 
-	tempFile.Write(fileBytes)
-	defer file.Close()
-	defer tempFile.Close()
+	if err := os.Remove(filePath); err != nil {
+		log.Println("Error for Remove file : ", err)
+	}
 
-	wallPaper.FilePath = path.Base(tempFile.Name())
-
-	filePath := path.Base(tempFile.Name())
-
-	wallPaper.FilePath = filePath
+	wallPaper.FilePath = fileKey
 	wallPaper.CreatedAt = primitive.NewDateTimeFromTime(time.Now())
 	wallPaper.UpdatedAt = primitive.NewDateTimeFromTime(time.Now())
 	wallPaper.Category = helper.RECENT
@@ -70,8 +62,13 @@ func (serv *service) AddWallPaper(file multipart.File, wallPaper models.WallPape
 	return serv.wallPaperRepo.AddWallPaper(wallPaper)
 }
 
-func (serv *service) GetWallPapers(isActive bool) (dto.GetWallPapersDTO, error) {
-	result, err := serv.wallPaperRepo.GetWallPapers(isActive)
+func (serv *service) GetWallPapers(args dto.GetWallPaperRequest) (dto.GetWallPapersDTO, error) {
+	var isActive bool = false
+	if args.IsActive == "ACTIVE" {
+		isActive = true
+	}
+
+	result, err := serv.wallPaperRepo.GetWallPapers(isActive, args.PageSkip, args.PageLimit)
 
 	if err != nil {
 		return dto.GetWallPapersDTO{}, err
@@ -87,22 +84,17 @@ func (serv *service) GetWallPapers(isActive bool) (dto.GetWallPapersDTO, error) 
 	}
 
 	for i := range result {
-		path := result[i].FilePath
-
-		if strings.Contains(path, "static") {
-			result[i].FilePath = "http://localhost:5000/" + path
-		} else {
-			result[i].FilePath = "http://localhost:5000/static/wallpaper/" + path
-		}
-
-		if result[i].Category == helper.RECENT {
-			wallPaper_data.Recent = append(wallPaper_data.Recent, result[i])
-		} else {
-			wallPaper_data.Olds = append(wallPaper_data.Olds, result[i])
+		objUrl, err := s3.GetTheObject(result[i].FilePath)
+		if err == nil {
+			result[i].FilePath = objUrl
+			if result[i].Category == helper.RECENT {
+				wallPaper_data.Recent = append(wallPaper_data.Recent, result[i])
+			} else {
+				wallPaper_data.Olds = append(wallPaper_data.Olds, result[i])
+			}
 		}
 	}
-
-	if len(wallPaper_data.Recent) == 0 {
+	if len(wallPaper_data.Recent) == 0 && args.AppTag == "APP" {
 		wallPaper_data.Recent = append(wallPaper_data.Recent, wallPaper_data.Olds[:len(wallPaper_data.Olds)/2]...)
 	}
 

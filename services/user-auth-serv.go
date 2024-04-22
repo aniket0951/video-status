@@ -42,7 +42,7 @@ func (ser *userauthservice) CreateEndUser(user dto.RegisterEndUserDTO) (dto.Regi
 
 	newUserToCreate := models.Users{}
 
-	smapping.FillStruct(&newUserToCreate, smapping.MapFields(&user))
+	_ = smapping.FillStruct(&newUserToCreate, smapping.MapFields(&user))
 
 	checkDuplicate := ser.repo.DuplicateMobile(newUserToCreate.MobileNumber)
 
@@ -56,7 +56,7 @@ func (ser *userauthservice) CreateEndUser(user dto.RegisterEndUserDTO) (dto.Regi
 		return dto.RegisterEndUserDTO{}, err
 	}
 
-	smapping.FillStruct(&user, smapping.MapFields(&createdUser))
+	_ = smapping.FillStruct(&user, smapping.MapFields(&createdUser))
 
 	return user, nil
 
@@ -83,7 +83,7 @@ func (ser *userauthservice) CreateAdminUser(user dto.CreateAdminUserDTO) (dto.Ge
 	}
 
 	newAdminUserDTO := dto.GetAdminUserDTO{}
-	smapping.FillStruct(&newAdminUserDTO, smapping.MapFields(&newUser))
+	_ = smapping.FillStruct(&newAdminUserDTO, smapping.MapFields(&newUser))
 
 	return newAdminUserDTO, nil
 
@@ -98,7 +98,7 @@ func (ser *userauthservice) ValidateAdminUser(email string, pass string) (dto.Ge
 	if comparePassword(adminUser.Password, []byte(pass)) {
 		adminUserDTO := dto.GetAdminUserDTO{}
 
-		smapping.FillStruct(&adminUserDTO, smapping.MapFields(&adminUser))
+		_ = smapping.FillStruct(&adminUserDTO, smapping.MapFields(&adminUser))
 
 		return adminUserDTO, nil
 	}
@@ -115,7 +115,7 @@ func (ser *userauthservice) GetUserById(adminId primitive.ObjectID) (dto.GetAdmi
 
 	adminUser := dto.GetAdminUserDTO{}
 
-	smapping.FillStruct(&adminUser, smapping.MapFields(&res))
+	_ = smapping.FillStruct(&adminUser, smapping.MapFields(&res))
 
 	return adminUser, nil
 
@@ -132,11 +132,11 @@ func (ser *userauthservice) GetAllAdminUsers() ([]dto.GetAdminUserDTO, error) {
 		return []dto.GetAdminUserDTO{}, err
 	}
 
-	adminUsers := []dto.GetAdminUserDTO{}
+	var adminUsers []dto.GetAdminUserDTO
 
 	for i := range users {
 		temp := dto.GetAdminUserDTO{}
-		smapping.FillStruct(&temp, smapping.MapFields(users[i]))
+		_ = smapping.FillStruct(&temp, smapping.MapFields(users[i]))
 		adminUsers = append(adminUsers, temp)
 	}
 
@@ -150,7 +150,7 @@ func (ser *userauthservice) AddAdminUserAddress(address dto.CreateAdminUserAddre
 		return smpErr
 	}
 
-	userObjId, objErr := primitive.ObjectIDFromHex(string(address.UserID.Hex()))
+	userObjId, objErr := primitive.ObjectIDFromHex(address.UserID.Hex())
 
 	if objErr != nil {
 		return objErr
@@ -179,7 +179,7 @@ func (ser *userauthservice) GetAdminUserAddress(userId primitive.ObjectID) (dto.
 
 	address := dto.GetAdminUserAddress{}
 
-	smapping.FillStruct(&address, smapping.MapFields(&userAddress))
+	_ = smapping.FillStruct(&address, smapping.MapFields(&userAddress))
 
 	return address, nil
 }

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/aniket0951/Chatrapati-Maharaj/dto"
 	"github.com/aniket0951/Chatrapati-Maharaj/helper"
 	"github.com/aniket0951/Chatrapati-Maharaj/models"
 	"github.com/aniket0951/Chatrapati-Maharaj/services"
@@ -54,18 +55,15 @@ func (c *controller) AddWallPaper(ctx *gin.Context) {
 }
 
 func (c *controller) GetWallPapers(ctx *gin.Context) {
-	tag := ctx.Param("tag")
+	var getWallPaperRequest dto.GetWallPaperRequest
 
-	if strings.TrimSpace(tag) == "" {
-		helper.RequestBodyEmptyResponse(ctx)
+	if err := ctx.ShouldBindJSON(&getWallPaperRequest); err != nil {
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, "Invalid Params !", helper.WALLPAPER_DATA)
+		ctx.JSON(http.StatusBadRequest, response)
 		return
 	}
-	var isActive bool = false
-	if tag == "ACTIVE" {
-		isActive = true
-	}
 
-	result, err := c.wallPaperService.GetWallPapers(isActive)
+	result, err := c.wallPaperService.GetWallPapers(getWallPaperRequest)
 
 	if err != nil {
 		if !strings.Contains(err.Error(), "not found") {

@@ -55,15 +55,14 @@ func (nm *NotificationManager) NotifyAllUser(message *messaging.Message) {
 
 	// notify all users
 	for _, tokenData := range tokens {
-		message.Token = tokenData.Token
-
-		response, err := client.Send(context.Background(), message)
-
-		if err != nil {
-			fmt.Println("Notification Error : ", err.Error())
-			continue
-		}
-		log.Println("Notification Response : ", response)
+		go func(token string) {
+			message.Token = token
+			response, err := client.Send(context.Background(), message)
+			if err != nil {
+				fmt.Println("Notification Error : ", err.Error())
+			}
+			log.Println("Notification Response : ", response)
+		}(tokenData.Token)
 	}
 
 	fmt.Println("Notification has been send!")

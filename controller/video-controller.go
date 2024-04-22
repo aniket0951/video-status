@@ -1,14 +1,17 @@
 package controller
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/aniket0951/Chatrapati-Maharaj/dto"
 	"github.com/aniket0951/Chatrapati-Maharaj/helper"
+	"github.com/aniket0951/Chatrapati-Maharaj/s3"
 	"github.com/aniket0951/Chatrapati-Maharaj/services"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"io"
 )
 
 type VideoController interface {
@@ -26,22 +29,32 @@ type VideoController interface {
 	FetchInActiveVideos(ctx *gin.Context)
 	ActiveVideo(ctx *gin.Context)
 	IncreaseDownloadCount(ctx *gin.Context)
+
+	GenerateSignVideoURL(ctx *gin.Context)
+
+	VideoFullDetails(ctx *gin.Context)
+
+	CreateVerificationProcess(videoId primitive.ObjectID, verificationStatus string)
 }
 
 type videocontroller struct {
-	service services.VideoService
+	service                  services.VideoService
+	userVideoService         services.UserVideoService
+	videoVerificationService services.VideoVerificationService
 }
 
-func NewVideoController(ser services.VideoService) VideoController {
+func NewVideoController(ser services.VideoService, userVideoServ services.UserVideoService, verificationService services.VideoVerificationService) VideoController {
 	return &videocontroller{
-		service: ser,
+		service:                  ser,
+		userVideoService:         userVideoServ,
+		videoVerificationService: verificationService,
 	}
 }
 
 func (c *videocontroller) CreateCategory(ctx *gin.Context) {
 
 	category := dto.CreateVideoCategoriesDTO{}
-	ctx.BindJSON(&category)
+	_ = ctx.BindJSON(&category)
 
 	if (category == dto.CreateVideoCategoriesDTO{}) {
 		helper.RequestBodyEmptyResponse(ctx)
@@ -71,7 +84,7 @@ func (c *videocontroller) CreateCategory(ctx *gin.Context) {
 
 func (c *videocontroller) UpdateCategory(ctx *gin.Context) {
 	category := dto.CreateVideoCategoriesDTO{}
-	ctx.BindJSON(&category)
+	_ = ctx.BindJSON(&category)
 
 	if (category == dto.CreateVideoCategoriesDTO{}) {
 		helper.RequestBodyEmptyResponse(ctx)
@@ -177,6 +190,15 @@ func (c *videocontroller) AddVideo(ctx *gin.Context) {
 		return
 	}
 
+	userErr := c.userVideoService.AddUserVideo(res)
+	if userErr != nil {
+		fmt.Println(userErr.Error())
+	}
+
+	go func() {
+		c.CreateVerificationProcess(res, helper.VERIFICATION_PENDING)
+	}()
+
 	response := helper.BuildSuccessResponse(helper.DATA_INSERTED, helper.VIDEO_DATA, helper.EmptyObj{})
 	ctx.AbortWithStatusJSON(http.StatusOK, response)
 }
@@ -210,8 +232,7 @@ func (c *videocontroller) GetAllVideos(ctx *gin.Context) {
 
 func (c *videocontroller) UpdateVideo(ctx *gin.Context) {
 	videoToUpdate := dto.UpdateVideoDTO{}
-
-	ctx.BindJSON(&videoToUpdate)
+	_ = ctx.BindJSON(&videoToUpdate)
 
 	if (videoToUpdate == dto.UpdateVideoDTO{}) {
 		helper.RequestBodyEmptyResponse(ctx)
@@ -229,11 +250,21 @@ func (c *videocontroller) UpdateVideo(ctx *gin.Context) {
 	response := helper.BuildSuccessResponse(helper.UPDATE_SUCCESS, helper.VIDEO_DATA, helper.EmptyObj{})
 	ctx.JSON(http.StatusOK, response)
 
-	defer ctx.Request.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			fmt.Println(err)
+		}
+	}(ctx.Request.Body)
 }
 
 func (c *videocontroller) DeleteVideo(ctx *gin.Context) {
-	defer ctx.Request.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			fmt.Println(err)
+		}
+	}(ctx.Request.Body)
 	videoId := ctx.Request.URL.Query().Get("video_id")
 
 	if len(videoId) <= 0 {
@@ -372,4 +403,26 @@ func (c *videocontroller) GetVideoByID(ctx *gin.Context) {
 
 	response := helper.BuildSuccessResponse(helper.FETCHED_SUCCESS, helper.VIDEO_DATA, video)
 	ctx.JSON(http.StatusOK, response)
+}
+
+// share the video
+func (c *videocontroller) GenerateSignVideoURL(ctx *gin.Context) {
+	fileKey := ctx.Param("fileKey")
+	log.Println("File Key : ", fileKey)
+	if fileKey == "" {
+		helper.RequestBodyEmptyResponse(ctx)
+		return
+	}
+
+	err := c.service.GetShareVideo(fileKey)
+
+	if err != nil {
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.VIDEO_DATA)
+		ctx.JSON(http.StatusBadRequest, response)
+		return
+	}
+
+	respo := s3.GetVideoObjectInput(fileKey)
+	defer respo.Body.Close()
+	ctx.DataFromReader(http.StatusOK, *respo.ContentLength, *respo.ContentType, respo.Body, nil)
 }

@@ -1,0 +1,20 @@
+## WallPaper request
+
+GET http://localhost:5000/api/get-wallpapers/ACTIVE
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNjVkOWMxMmRiY2RmZGM4MmY1OWMyMTFiIiwidXNlcl90eXBlIjoiYWRtaW5fdXNlciIsImV4cCI6MzYwMDAwMDAwMDAwMCwiaWF0IjoxNzEwNTY5NTE2LCJpc3MiOiJ5ZGhud2IifQ.Ou5mHo67WOpxvfMbfp1BXyQkOCcXIR3_GklkKrjE4XU
+
+{
+    "test":1
+}
+
+### Save FCM token
+POST http://localhost:5000/api/user/add-fcm-token
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNjVkOWMxMmRiY2RmZGM4MmY1OWMyMTFiIiwidXNlcl90eXBlIjoiYWRtaW5fdXNlciIsImV4cCI6MzYwMDAwMDAwMDAwMCwiaWF0IjoxNzEwNTY5NTE2LCJpc3MiOiJ5ZGhud2IifQ.Ou5mHo67WOpxvfMbfp1BXyQkOCcXIR3_GklkKrjE4XU
+
+{
+    "token": "dZ24eyIcRjCEYbhOY7Bs4c:APA91bFs-8U1wU_aUgT0ujsjSVvbU84bNAEwnzRvpPLcPs8080mHfgoyXCQf_zft_35zNiAqP1cirqLxpofPVBFUv97s-g6I9YhUJfhPrAaa2lFApdqiu20WEICfb_Ct_V7YG-jVMf7i"
+}
+
+### get tokens
+GET http://localhost:5000/user/get-tokens
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNjVkOWMxMmRiY2RmZGM4MmY1OWMyMTFiIiwidXNlcl90eXBlIjoiYWRtaW5fdXNlciIsImV4cCI6MzYwMDAwMDAwMDAwMCwiaWF0IjoxNzEwNTY5NTE2LCJpc3MiOiJ5ZGhud2IifQ.Ou5mHo67WOpxvfMbfp1BXyQkOCcXIR3_GklkKrjE4XU

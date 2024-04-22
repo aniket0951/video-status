@@ -3,19 +3,30 @@ package services
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"mime/multipart"
-	"path"
+	"os"
 	"reflect"
-	"strings"
+
+	log "github.com/sirupsen/logrus"
 
 	"firebase.google.com/go/messaging"
 	"github.com/aniket0951/Chatrapati-Maharaj/dto"
+	"github.com/aniket0951/Chatrapati-Maharaj/helper"
 	"github.com/aniket0951/Chatrapati-Maharaj/models"
 	notificationmanager "github.com/aniket0951/Chatrapati-Maharaj/notification_manager"
 	"github.com/aniket0951/Chatrapati-Maharaj/repositories"
+	"github.com/aniket0951/Chatrapati-Maharaj/s3"
 	"github.com/mashingan/smapping"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+<<<<<<< HEAD
+=======
+	"mime/multipart"
+	"strings"
+)
+
+var (
+	userVideoRepo = repositories.NewUserVideoRepository()
+>>>>>>> 9c19887285b2026e2c65966dca4df5157c7dfcd3
 )
 
 type VideoService interface {
@@ -25,26 +36,50 @@ type VideoService interface {
 	DeleteCategory(categoryId primitive.ObjectID) error
 	DuplicateCategory(categoryName string) (bool, error)
 
+<<<<<<< HEAD
 	AddVideo(video dto.CreateVideosDTO, file, thumbnail multipart.File) error
+=======
+	AddVideo(video dto.CreateVideosDTO, file multipart.File) (primitive.ObjectID, error)
+>>>>>>> 9c19887285b2026e2c65966dca4df5157c7dfcd3
 	GetAllVideos() ([]dto.GetVideosDTO, error)
 	UpdateVideo(video dto.UpdateVideoDTO) error
+	UpdateVideoVerification(video models.Videos) error
 	DeleteVideo(videoId primitive.ObjectID) error
+<<<<<<< HEAD
 
 	FetchInActiveVideos() ([]dto.GetVideosDTO, error)
 	ActiveVideo(video_id primitive.ObjectID, isActive bool) error
 	IncreaseDownloadCount(video_id primitive.ObjectID) error
 	GetVideoByID(videoId primitive.ObjectID) (dto.GetVideosDTO, error)
+
+	// after share the link to user
+	GetShareVideo(fileKey string) error
 }
 
 type videocategoriesservice struct {
 	repo                repositories.VideoRepository
 	notificationService notificationmanager.NotificationManager
+=======
+	//GetVideoById()
+
+	VideoFullDetails(videoId primitive.ObjectID) (interface{}, error)
+}
+
+type videocategoriesservice struct {
+	repo          repositories.VideoRepository
+	userVideoRepo repositories.UserVideoRepository
+>>>>>>> 9c19887285b2026e2c65966dca4df5157c7dfcd3
 }
 
 func NewVideoCategoriesService(repo repositories.VideoRepository, notificationManager notificationmanager.NotificationManager) VideoService {
 	return &videocategoriesservice{
+<<<<<<< HEAD
 		repo:                repo,
 		notificationService: notificationManager,
+=======
+		repo:          repo,
+		userVideoRepo: userVideoRepo,
+>>>>>>> 9c19887285b2026e2c65966dca4df5157c7dfcd3
 	}
 }
 
@@ -70,7 +105,7 @@ func (ser *videocategoriesservice) CreateCategory(category dto.CreateVideoCatego
 
 	newCategory := dto.GetVideoCategoriesDTO{}
 
-	smapping.FillStruct(&newCategory, smapping.MapFields(res))
+	_ = smapping.FillStruct(&newCategory, smapping.MapFields(res))
 
 	return newCategory, nil
 }
@@ -89,7 +124,7 @@ func (ser *videocategoriesservice) UpdateCategory(category dto.CreateVideoCatego
 	}
 
 	newCategory := dto.GetVideoCategoriesDTO{}
-	smapping.FillStruct(&newCategory, smapping.MapFields(result))
+	_ = smapping.FillStruct(&newCategory, smapping.MapFields(result))
 	return newCategory, nil
 }
 
@@ -100,11 +135,11 @@ func (ser *videocategoriesservice) GetAllCategory() ([]dto.GetVideoCategoriesDTO
 		return []dto.GetVideoCategoriesDTO{}, err
 	}
 
-	allCategory := []dto.GetVideoCategoriesDTO{}
+	var allCategory []dto.GetVideoCategoriesDTO
 
 	for i := range res {
 		temp := dto.GetVideoCategoriesDTO{}
-		smapping.FillStruct(&temp, smapping.MapFields(res[i]))
+		_ = smapping.FillStruct(&temp, smapping.MapFields(res[i]))
 
 		allCategory = append(allCategory, temp)
 	}
@@ -123,56 +158,79 @@ func (ser *videocategoriesservice) DuplicateCategory(categoryName string) (bool,
 	return ser.repo.DuplicateCategory(categoryName)
 }
 
+<<<<<<< HEAD
 func (ser *videocategoriesservice) AddVideo(video dto.CreateVideosDTO, file, thumbnailFile multipart.File) error {
+=======
+func (ser *videocategoriesservice) AddVideo(video dto.CreateVideosDTO, file multipart.File) (primitive.ObjectID, error) {
+	_, isCatErr := ser.repo.GetCategoryById(video.VideoCategoriesID)
+
+	if isCatErr != nil {
+		return primitive.NewObjectID(), isCatErr
+	}
+
+>>>>>>> 9c19887285b2026e2c65966dca4df5157c7dfcd3
 	videoToCreate := models.Videos{}
 
 	if smpErr := smapping.FillStruct(&videoToCreate, smapping.MapFields(video)); smpErr != nil {
-		return smpErr
+		return primitive.NewObjectID(), smpErr
 	}
 
-	_, isCatErr := ser.repo.GetCategoryById(videoToCreate.VideoCategoriesID)
-
-	if isCatErr != nil {
+<<<<<<< HEAD
+	if _, isCatErr := ser.repo.GetCategoryById(videoToCreate.VideoCategoriesID); isCatErr != nil {
 		return isCatErr
 	}
 
-	// save the video thumbnail
-	thumbnail_path, s_err := SaveThumbnail(thumbnailFile)
+	// save the video thumbnail locally
+	tFileKey, tFilePath, s_err := helper.LocalFileWrite(thumbnailFile, "static/thumbnail", "thumbnail-*.png")
 
 	if s_err != nil {
 		return s_err
 	}
 
-	videoToCreate.VideoThumbnail = thumbnail_path
-
-	err := ser.repo.AddVideo(videoToCreate, file)
-	if err != nil {
+	// upload a thumbnail to s3
+	if err := s3.UploadFileToS3(tFilePath, tFileKey, "image/png"); err != nil {
+		if err := os.Remove(tFilePath); err != nil {
+			return err
+		}
 		return err
 	}
 
-	return nil
-}
+	if err := os.Remove(tFilePath); err != nil {
+		log.Println("Error while removing local file :", err)
+	}
 
-func SaveThumbnail(file multipart.File) (string, error) {
-	tempFile, err := ioutil.TempFile("static/thumbnail", "thumbnail-*.png")
+	videoToCreate.VideoThumbnail = tFileKey
 
+	// prepare video file
+	var fileContent = "video/mp4"
+
+	fileKey, filePath, err := helper.LocalFileWrite(file, "static", "upload-*.mp4")
+
+=======
+	res, err := ser.repo.AddVideo(videoToCreate, file)
+>>>>>>> 9c19887285b2026e2c65966dca4df5157c7dfcd3
 	if err != nil {
-		return "", err
+		return primitive.NewObjectID(), err
 	}
 
-	defer tempFile.Close()
-
-	fileBytes, fileReader := ioutil.ReadAll(file)
-
-	if fileReader != nil {
-		return "", fileReader
+<<<<<<< HEAD
+	if err := s3.UploadFileToS3(filePath, fileKey, fileContent); err != nil {
+		log.Println("File Upload Error : ", err)
+		return err
 	}
 
-	tempFile.Write(fileBytes)
-	defer file.Close()
-	defer tempFile.Close()
+	// remove local file
+	if err := os.Remove(filePath); err != nil {
+		log.Println("Error occured while remove local file : ", err)
+	}
 
-	return path.Base(tempFile.Name()), nil
+	videoToCreate.VideoPath = fileKey
+
+	err = ser.repo.AddVideo2(videoToCreate)
+	return err
+=======
+	return res, nil
+>>>>>>> 9c19887285b2026e2c65966dca4df5157c7dfcd3
 }
 
 func (ser *videocategoriesservice) GetAllVideos() ([]dto.GetVideosDTO, error) {
@@ -182,7 +240,7 @@ func (ser *videocategoriesservice) GetAllVideos() ([]dto.GetVideosDTO, error) {
 		return []dto.GetVideosDTO{}, nil
 	}
 
-	allVideos := []dto.GetVideosDTO{}
+	var allVideos []dto.GetVideosDTO
 
 	if len(res) == 0 {
 		return []dto.GetVideosDTO{}, errors.New("videos not availabel")
@@ -190,15 +248,34 @@ func (ser *videocategoriesservice) GetAllVideos() ([]dto.GetVideosDTO, error) {
 
 	for i := range res {
 		temp := dto.GetVideosDTO{}
+<<<<<<< HEAD
 		smapping.FillStruct(&temp, smapping.MapFields(res[i]))
-		videoPath := "http://localhost:5000/static/" + temp.VideoPath
-		if res[i].VideoThumbnail == "" {
-			temp.VideoThumbnail = "http://192.168.0.109:5000/static/wallpaper/wallpaper-163721182.png"
-		} else {
-			temp.VideoThumbnail = "http://localhost:5000/static/thumbnail/" + res[i].VideoThumbnail
+
+		url, err := s3.GetVideoObjectUrl(temp.VideoPath)
+		if err != nil {
+			log.Error("Video Object URL : ", err)
 		}
-		temp.VideoPath = videoPath
+
+		thumbnailUrl, err := s3.GetVideoThumbnailObjectUrl(temp.VideoThumbnail)
+
+		if err != nil {
+			log.Error("Thumbnail Error : ", err)
+		}
+
+		temp.VideoPath = url
+		temp.VideoThumbnail = thumbnailUrl
 		temp.DownloadCount = res[i].DownloadCount
+=======
+		_ = smapping.FillStruct(&temp, smapping.MapFields(res[i]))
+		videoPath := ""
+		if strings.Contains(temp.VideoPath, "static") {
+			videoPath = "http://localhost:5000/" + temp.VideoPath
+		} else {
+			videoPath = "http://localhost:5000/static/" + temp.VideoPath
+		}
+
+		temp.VideoPath = videoPath
+>>>>>>> 9c19887285b2026e2c65966dca4df5157c7dfcd3
 		allVideos = append(allVideos, temp)
 	}
 
@@ -215,12 +292,17 @@ func (ser *videocategoriesservice) UpdateVideo(video dto.UpdateVideoDTO) error {
 	return ser.repo.UpdateVideo(videoToUpdate)
 }
 
+func (ser *videocategoriesservice) UpdateVideoVerification(video models.Videos) error {
+	return ser.repo.UpdateVideoVerification(video)
+}
+
 func (ser *videocategoriesservice) DeleteVideo(videoId primitive.ObjectID) error {
 	err := ser.repo.DeleteVideo(videoId)
 
 	return err
 }
 
+<<<<<<< HEAD
 func (ser *videocategoriesservice) FetchInActiveVideos() ([]dto.GetVideosDTO, error) {
 	result, err := ser.repo.FetchInActiveVideos()
 
@@ -237,14 +319,12 @@ func (ser *videocategoriesservice) FetchInActiveVideos() ([]dto.GetVideosDTO, er
 	for i := range result {
 		temp := dto.GetVideosDTO{}
 		smapping.FillStruct(&temp, smapping.MapFields(result[i]))
-		var videoPath string
-		if !strings.Contains(temp.VideoPath, "static") {
-			videoPath = "http://localhost:5000/static/" + temp.VideoPath
-		} else {
-			videoPath = "http://localhost:5000/" + temp.VideoPath
+		url, err := s3.GetVideoObjectUrl(temp.VideoPath)
+		if err != nil {
+			log.Error("Error while generate signed URL : ", err)
 		}
 
-		temp.VideoPath = videoPath
+		temp.VideoPath = url
 		temp.DownloadCount = result[i].DownloadCount
 		inActiveVideos = append(inActiveVideos, temp)
 	}
@@ -311,4 +391,18 @@ func (ser *videocategoriesservice) GetVideoByID(videoId primitive.ObjectID) (dto
 	video.UpdatedAt = result.UpdatedAt
 
 	return video, nil
+}
+
+func (ser *videocategoriesservice) GetShareVideo(fileKey string) error {
+	// check the file key exists or not
+	isExists, err := ser.repo.IsFileKeyExists(fileKey)
+	log.Infof("Is Exists : %+v and err %+v", isExists, err)
+	if err != nil || !isExists {
+		return err
+	}
+	return nil
+=======
+func (ser *videocategoriesservice) VideoFullDetails(videoId primitive.ObjectID) (interface{}, error) {
+	return ser.repo.VideoFullDetails(videoId)
+>>>>>>> 9c19887285b2026e2c65966dca4df5157c7dfcd3
 }

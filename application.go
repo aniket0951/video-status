@@ -37,8 +37,8 @@ const (
 func main() {
 	router := gin.Default()
 	router.Use(cors.New(CORSConfig()))
-
-	router.Static("static", "./static")
+	gin.SetMode(gin.ReleaseMode)
+	router.Static("static", "static")
 
 	router.GET("/", func(ctx *gin.Context) {
 		response := map[string]interface{}{}
@@ -68,6 +68,7 @@ func main() {
 	routers.UserAuthRouter(router)
 	routers.VideoRouter(router)
 	routers.WallPaperRouter(router)
+	routers.VideoVerificationRoute(router)
 
 	router.Run("0.0.0.0:5000")
 }

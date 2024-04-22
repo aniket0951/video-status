@@ -20,7 +20,7 @@ func WallPaperRouter(router *gin.Engine) {
 	wallPaper := router.Group("/api", middleware.AuthorizeJWT(jwtService))
 	{
 		wallPaper.POST("/add-wallpaper", wallPaperController.AddWallPaper)
-		wallPaper.GET("/get-wallpapers/:tag", wallPaperController.GetWallPapers)
+		wallPaper.POST("/get-wallpapers", wallPaperController.GetWallPapers)
 		wallPaper.POST("/active-wallpaper/:id/:tag", wallPaperController.ActiveInActiveWallPaper)
 		wallPaper.POST("/like-wallpapepr/:id", wallPaperController.WallPaperLiked)
 	}

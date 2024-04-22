@@ -1,6 +1,9 @@
 package helper
 
 import (
+	"io/ioutil"
+	"mime/multipart"
+	"path"
 	"regexp"
 	"strings"
 )
@@ -19,4 +22,27 @@ func CheckErr(err string) string {
 	}
 
 	return "Something Went's Wrong"
+}
+
+func LocalFileWrite(file multipart.File, localFilePath, extension string) (string, string, error) {
+	tempFile, err := ioutil.TempFile(localFilePath, extension)
+
+	if err != nil {
+		return "", "", err
+	}
+
+	defer tempFile.Close()
+
+	fileBytes, err := ioutil.ReadAll(file)
+
+	if err != nil {
+		return "", "", err
+	}
+
+	tempFile.Write(fileBytes)
+	defer file.Close()
+
+	// FileKey, FilePath, Error
+	filePath, fileKey := tempFile.Name(), path.Base(tempFile.Name())
+	return fileKey, filePath, nil
 }

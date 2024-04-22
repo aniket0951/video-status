@@ -17,7 +17,7 @@ var WallPaperCollection *mongo.Collection = dbconfig.GetCollection(dbconfig.DB, 
 
 type WallPaperRepository interface {
 	AddWallPaper(wallPaper models.WallPaper) error
-	GetWallPapers(isActive bool) ([]models.WallPaper, error)
+	GetWallPapers(isActive bool, skip, limit int) ([]models.WallPaper, error)
 	ActiveInActiveWallPaper(videoId primitive.ObjectID, isActive bool) error
 	WallPaperLiked(wallpapper_id primitive.ObjectID) error
 	FetchRecentWallPapers(isActive bool) ([]models.WallPaper, error)
@@ -49,14 +49,17 @@ func (repo *repo) AddWallPaper(wallPaper models.WallPaper) error {
 	return err
 }
 
-func (repo *repo) GetWallPapers(isActive bool) ([]models.WallPaper, error) {
+func (repo *repo) GetWallPapers(isActive bool, skip, limit int) ([]models.WallPaper, error) {
 	ctx, cancel := repo.Init()
 	defer cancel()
 
 	filter := bson.M{
 		"is_active": isActive,
 	}
+
 	sort := options.Find().SetSort(bson.M{"updated_at": -1})
+	// sort.SetSkip(int64(skip))
+	// sort.SetLimit(int64(limit))
 	cursor, err := repo.WallPaperCollection.Find(ctx, filter, sort)
 
 	if err != nil {
