@@ -36,4 +36,10 @@ func UserAuthRouter(router *gin.Engine) {
 		adminUserAddress.GET("/get-admin-address", userAuthCont.GetAdminUserAdrress)
 		adminUserAddress.PUT("/update-admin-address", userAuthCont.UpdateAdminAddress)
 	}
+
+	tokenApp := router.Group("/api/user", middleware.AuthorizeJWT(jwtService))
+	{
+		tokenApp.POST("/add-fcm-token", userAuthCont.SaveTokens)
+		tokenApp.GET("/get-tokens", userAuthCont.GetTokens)
+	}
 }

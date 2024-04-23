@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "maharaj-wallpaper",
+  "private_key_id": "6fa21af463dc20dc461294a0e59b27f065b46f77",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDhgQpGdF04cHi0\nJlz+dbtuKaK9lp+hVYrP28O9laOYPS9Afjrl+STR+jMHK8xS2zfBcVr8dvzXHHD8\n4yQOG67pnJpkb5ASToS0CGRUQTkP0UyRGLwQ/d4R/AM3jeZ85taU2K5YVaA7ggK0\nZg+GfhFW2HWfOn0gnxRuK+ELcl3Ciu6a7xeQgiV7A2s4MW4GFlOURoYai9L/QV40\nRgnencT/u0hMHEH33IaU+jJNHnUE8Xx6wYtGXAWsKBA7fqeaSsdj57HhS9n2WerT\nca+L1351igz0PW5VBGF5wghcfdMjdE2lqWrhsx+hWhF/ta/+u7s1p5G+52k7uaRo\nSgATsaI/AgMBAAECggEAUJeLko532nnnyYqEZbSx3bcnoFY6irBFwe+qzxCxvPDw\n+D2k0xftntWqcv+mMF6EWLAocl4cEszpXJfZBOnD413Cl+5/MOu65ZSyNqJwwERu\n9tQ+Mlxoh0jn5WzjWPQu8FdYR92iPGJEkTCAj/JyQ/VsZBHFMmloJc+syCiBdcsB\npgU4cRfMHzT259QS1ONBxrFoBK16ZaPNK0oL5hOUxrjES7p+wdZjR8BFV8w6IXbp\nlT4slO2JkVBVGpDubc0s0jP8xec3YgRMPnD7ylxReE18b/1FiEeQUEMc1yr9N0M/\noPvQ6J7vwparsiUaHmsSzRQOyEpwJPoAxoU5k8He4QKBgQDzj4qNozi7ESZHHEy9\ndd7BELJ4EBR7J79qimImwBehGfRGdcUbTRqemke151jZ7fctIzxbht3C6spg2IXD\nfRuX3/uyQ8m9aRzLkNrY/uFzYM1lVrEA707otLW5chsSpWAgw7zubZpMsWK4oukk\n1Sfc/cUVSDQ7SMu0mRlDai8w1wKBgQDtBWpey0rNKkMHPtCHG09ZOFLy2KzSgbpG\nkN6KWGR9GqOrrrMyguqYzTY+qi0Gd+ofStgf3aL1OzEQkL8KCGDM7zkFj/SOKlk7\nH45w/0lf6Xzhs97dpvhgyptTJz7J0uldNkPRMvp04T/2VN249sMuYGGq/9W8LNWc\nCXJb5mUk2QKBgFa0CJy3OCDP0BKMbn0bkrqj2QSIpOHamnew35Pv2fmNpbnXft1j\nK1C+lzyYKLcb0VwOKRRkBFm4/2ZObf/Tb5k3MQCaxRxaaNfGr0GEKnnKQhQLMmOk\nzTBl9DMZ/a07lebUB1PRTJZ0pzIXPGvSPaib5ibXV1Crb2jQ/39SM45tAoGBAIXB\noJ2OK9BMITddg2A7UTQQTP8ut5i0DOL1riB0cYEIH4UrOYUvzCQe6pXCg1Y7Jawz\nGHQjJ2ss1Ct9A9ItmDMObSdubZws2d47mK674jR2FztnvkVnjJNSwwTSCOTsWTV5\nAhx0oFKFKwtgKR/QYaUyTuupJHzk8Eb2Lcse4cVBAoGBANy2rbK80vj5twLJwc3e\n/IFR7q8b74Uf0ULdMPz4Z+PRZUX6n/NzOF0V6jppo5aK4hyY8Ghz2tGxFk4AaOjE\nf97du4QqiZeNZhFIUe3MDbQSdeSce75KfCW/6Ec/LXjkgDsSVRB+7YiTYNs93Nbl\n6QFemtF0qSzArU456FZfdtMs\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-uw2ca@maharaj-wallpaper.iam.gserviceaccount.com",
+  "client_id": "113823982848687634528",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-uw2ca%40maharaj-wallpaper.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

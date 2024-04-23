@@ -15,7 +15,7 @@ func AuthorizeJWT(jwtService services.JWTService) gin.HandlerFunc {
 		authHeader := ctx.GetHeader("Authorization")
 
 		if authHeader == "" {
-			response := helper.BuildFailedResponse(helper.FAILED_PROCESS, "Token not found", "authentication", helper.EmptyObj{})
+			response := helper.BuildFailedResponse(helper.FAILED_PROCESS, "Token not found", "authentication")
 			ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 			return
 		}
@@ -23,7 +23,7 @@ func AuthorizeJWT(jwtService services.JWTService) gin.HandlerFunc {
 		token, err := jwtService.ValidateToken(authHeader)
 
 		if err != nil {
-			response := helper.BuildFailedResponse("Invalid token provided !", err.Error(), "authentication", helper.EmptyObj{})
+			response := helper.BuildFailedResponse("Invalid token provided !", err.Error(), "authentication")
 			ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 			return
 		}
