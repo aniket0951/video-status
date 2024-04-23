@@ -24,10 +24,8 @@ type GetVideoCategoriesDTO struct {
 type CreateVideosDTO struct {
 	VideoTitle        string             `json:"video_title" validate:"required"`
 	VideoDescription  string             `json:"video_desc" validate:"required"`
-<<<<<<< HEAD
+
 	IsVideoActive     bool               `json:"is_active"`
-=======
->>>>>>> 9c19887285b2026e2c65966dca4df5157c7dfcd3
 	VideoCategoriesID primitive.ObjectID `json:"video_cat_id" validate:"required"`
 }
 
@@ -39,7 +37,7 @@ type UpdateVideoDTO struct {
 	VideoCategoriesID primitive.ObjectID `json:"video_cat_id" `
 }
 
-<<<<<<< HEAD
+
 type GetAllVideosRequestDTO struct {
 	Tag string `form:"tag" binding:"required,oneof=ACTIVE INACTIVE"`
 }
@@ -55,7 +53,6 @@ type GetVideosDTO struct {
 	VideoThumbnail    string             `json:"video_thumbnail"`
 	CreatedAt         primitive.DateTime `json:"created_at,omitempty" `
 	UpdatedAt         primitive.DateTime `json:"updated_at,omitempty" `
-=======
 type GetVideosDTO struct {
 	ID                primitive.ObjectID `json:"id" bson:"_id"`
 	VideoTitle        string             `json:"video_title" bson:"video_title"`
@@ -67,7 +64,72 @@ type GetVideosDTO struct {
 	IsPublished       bool               `json:"is_published" `
 	CreatedAt         primitive.DateTime `json:"created_at" bson:"created_at"`
 	UpdatedAt         primitive.DateTime `json:"updated_at" bson:"updated_at"`
->>>>>>> 9c19887285b2026e2c65966dca4df5157c7dfcd3
+
+}
+
+type CreateVideoVerificationDTO struct {
+	VideoId            primitive.ObjectID `json:"video_id" validate:"required"`
+	UserId             primitive.ObjectID `json:"user_id" validate:"required"`
+	VerificationStatus string             `json:"verification_status" validate:"required"`
+}
+
+type UpdateVideoVerificationDTO struct {
+	ID                 primitive.ObjectID `json:"id" validate:"required"`
+	VideoId            primitive.ObjectID `json:"video_id"`
+	UserId             primitive.ObjectID `json:"user_id"`
+	VerificationStatus string             `json:"verification_status"`
+	Reason             string             `json:"reason"`
+}
+
+type GetVideoVerificationDTO struct {
+	ID                 primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	VideoId            primitive.ObjectID `json:"video_id" bson:"video_id"`
+	UserId             primitive.ObjectID `json:"user_id" bson:"user_id"`
+	VerificationStatus string             `json:"verification_status" bson:"verification_status"`
+	Reason             string             `json:"reason,omitempty" bson:"reason"`
+	VideoInfo          []models.Videos    `json:"video_info,omitempty" bson:"video_info"`
+	CreatedAt          primitive.DateTime `json:"created_at"`
+	UpdatedAt          primitive.DateTime `json:"updated_at"`
+}
+
+type CreatePublishDTO struct {
+	VideoId   primitive.ObjectID `json:"video_id" validate:"required"`
+	IsPublish *bool              `json:"is_publish" validate:"required"`
+}
+
+type UpdatePublishDTO struct {
+	ID        primitive.ObjectID `json:"id" validate:"required"`
+	VideoId   primitive.ObjectID `json:"video_id" validate:"required"`
+	IsPublish *bool              `json:"is_publish" validate:"required"`
+}
+
+type GetPublishDTO struct {
+	ID        primitive.ObjectID `json:"id" `
+	VideoId   primitive.ObjectID `json:"video_id" `
+	IsPublish *bool              `json:"is_publish"`
+	CreatedAt primitive.DateTime `json:"created_at"`
+	UpdatedAt primitive.DateTime `json:"updated_at"`
+}
+
+type CreateVerificationNotificationDTO struct {
+	Title        string             `json:"title" validate:"required"`
+	Description  string             `json:"description" validate:"required"`
+	IsApproved   string             `json:"isApproved" validate:"required"`
+	VideoId      primitive.ObjectID `json:"video_id" validate:"required"`
+	UserId       primitive.ObjectID `json:"user_id" validate:"required"`
+	UploadedDate primitive.DateTime `json:"uploadedDate" validate:"required"`
+}
+
+type GetVerificationNotificationDTO struct {
+	ID           primitive.ObjectID `json:"id" `
+	Title        string             `json:"title" `
+	Description  string             `json:"description" `
+	IsApproved   string             `json:"isApproved"`
+	VideoId      primitive.ObjectID `json:"video_id"`
+	UserId       primitive.ObjectID `json:"user_id"`
+	UploadedDate primitive.DateTime `json:"uploadedDate"`
+	CreatedAt    primitive.DateTime `json:"created_at"`
+	UpdatedAt    primitive.DateTime `json:"updated_at"`
 }
 
 type CreateVideoVerificationDTO struct {

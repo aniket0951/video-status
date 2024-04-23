@@ -3,18 +3,14 @@ package repositories
 import (
 	"context"
 	"errors"
-<<<<<<< HEAD
-=======
+
 	"fmt"
->>>>>>> 9c19887285b2026e2c65966dca4df5157c7dfcd3
 	"io/ioutil"
 	"mime/multipart"
 	"os"
 	"path"
-<<<<<<< HEAD
+
 	"reflect"
-=======
->>>>>>> 9c19887285b2026e2c65966dca4df5157c7dfcd3
 	"strings"
 	"time"
 
@@ -39,27 +35,29 @@ type VideoRepository interface {
 	DeleteCategory(categoryId primitive.ObjectID) error
 	DuplicateCategory(categoryName string) (bool, error)
 
-<<<<<<< HEAD
+
 	AddVideo(video models.Videos, file multipart.File) error
 	AddVideo2(video models.Videos) error
-=======
 	AddVideo(video models.Videos, file multipart.File) (primitive.ObjectID, error)
->>>>>>> 9c19887285b2026e2c65966dca4df5157c7dfcd3
+
+	AddVideo(video models.Videos, file multipart.File) (primitive.ObjectID, error)
+
 	GetAllVideos() ([]models.Videos, error)
 	GetVideoByID(videoId primitive.ObjectID) (models.Videos, error)
 	UpdateVideo(video models.Videos) error
 	UpdateVideoVerification(video models.Videos) error
 	DeleteVideo(videoId primitive.ObjectID) error
 
-<<<<<<< HEAD
+
 	FetchInActiveVideos() ([]models.Videos, error)
 	ActiveVideo(video_id primitive.ObjectID, isActive bool) error
 	IncreaseDownloadCount(video_id primitive.ObjectID) error
 
 	IsFileKeyExists(fileKey string) (bool, error)
-=======
+
 	VideoFullDetails(videoId primitive.ObjectID) (interface{}, error)
->>>>>>> 9c19887285b2026e2c65966dca4df5157c7dfcd3
+
+	VideoFullDetails(videoId primitive.ObjectID) (interface{}, error)
 
 	Init() (context.Context, context.CancelFunc)
 }
@@ -267,6 +265,7 @@ func (db *videocategoriesrepo) AddVideo(video models.Videos, file multipart.File
 	return video.ID, nil
 }
 
+
 func (db *videocategoriesrepo) AddVideo2(video models.Videos) error {
 	video.ID = primitive.NewObjectID()
 	video.CreatedAt = primitive.NewDateTimeFromTime(time.Now())
@@ -282,11 +281,11 @@ func (db *videocategoriesrepo) AddVideo2(video models.Videos) error {
 
 func (db *videocategoriesrepo) GetAllVideos() ([]models.Videos, error) {
 
-<<<<<<< HEAD
+
 	queryOptions := options.Find().SetSort(bson.D{{Key: "_id", Value: -1}})
 	filter := bson.M{"is_active": true}
 	cursor, curErr := db.videoscollection.Find(ctx, filter, queryOptions)
-=======
+
 	filter := []bson.M{
 		bson.M{
 			"$match": bson.M{
@@ -299,7 +298,22 @@ func (db *videocategoriesrepo) GetAllVideos() ([]models.Videos, error) {
 	}
 
 	cursor, curErr := db.videoscollection.Aggregate(context.TODO(), filter)
->>>>>>> 9c19887285b2026e2c65966dca4df5157c7dfcd3
+
+func (db *videocategoriesrepo) GetAllVideos() ([]models.Videos, error) {
+
+	filter := []bson.M{
+		bson.M{
+			"$match": bson.M{
+				"is_active": true,
+			},
+		},
+
+		{"$sort": bson.M{"_id": -1}},
+		{"$limit": 5},
+	}
+
+	cursor, curErr := db.videoscollection.Aggregate(context.TODO(), filter)
+
 
 	if curErr != nil {
 		return []models.Videos{}, curErr
@@ -409,7 +423,7 @@ func (db *videocategoriesrepo) DeleteVideo(videoId primitive.ObjectID) error {
 		return errors.New("failed to delete the video")
 	}
 
-<<<<<<< HEAD
+
 	path := video.VideoPath
 	var fileRemoveErr error
 	if strings.Contains(path, "static") {
@@ -419,7 +433,7 @@ func (db *videocategoriesrepo) DeleteVideo(videoId primitive.ObjectID) error {
 	}
 
 	// fileRemoveErr = os.Remove(video.VideoPath)
-=======
+
 	var fileRemoveErr error
 
 	if strings.Contains(video.VideoPath, "static") {
@@ -427,12 +441,12 @@ func (db *videocategoriesrepo) DeleteVideo(videoId primitive.ObjectID) error {
 	} else {
 		fileRemoveErr = os.Remove("static/" + video.VideoPath)
 	}
->>>>>>> 9c19887285b2026e2c65966dca4df5157c7dfcd3
+
 
 	return fileRemoveErr
 }
 
-<<<<<<< HEAD
+
 func (db *videocategoriesrepo) FetchInActiveVideos() ([]models.Videos, error) {
 	ctx, cancel := db.Init()
 	defer cancel()
@@ -511,7 +525,7 @@ func (db *videocategoriesrepo) IsFileKeyExists(fileKey string) (bool, error) {
 	}
 
 	return true, nil
-=======
+
 func (db *videocategoriesrepo) VideoFullDetails(videoId primitive.ObjectID) (interface{}, error) {
 	filter := []bson.M{
 		bson.M{
@@ -550,5 +564,4 @@ func (db *videocategoriesrepo) VideoFullDetails(videoId primitive.ObjectID) (int
 	}
 
 	return videoDetail, nil
->>>>>>> 9c19887285b2026e2c65966dca4df5157c7dfcd3
 }
