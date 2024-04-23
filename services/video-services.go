@@ -18,15 +18,12 @@ import (
 	"github.com/aniket0951/Chatrapati-Maharaj/s3"
 	"github.com/mashingan/smapping"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-<<<<<<< HEAD
-=======
 	"mime/multipart"
 	"strings"
 )
 
 var (
 	userVideoRepo = repositories.NewUserVideoRepository()
->>>>>>> 9c19887285b2026e2c65966dca4df5157c7dfcd3
 )
 
 type VideoService interface {
@@ -36,16 +33,15 @@ type VideoService interface {
 	DeleteCategory(categoryId primitive.ObjectID) error
 	DuplicateCategory(categoryName string) (bool, error)
 
-<<<<<<< HEAD
 	AddVideo(video dto.CreateVideosDTO, file, thumbnail multipart.File) error
-=======
+
 	AddVideo(video dto.CreateVideosDTO, file multipart.File) (primitive.ObjectID, error)
->>>>>>> 9c19887285b2026e2c65966dca4df5157c7dfcd3
+
 	GetAllVideos() ([]dto.GetVideosDTO, error)
 	UpdateVideo(video dto.UpdateVideoDTO) error
 	UpdateVideoVerification(video models.Videos) error
 	DeleteVideo(videoId primitive.ObjectID) error
-<<<<<<< HEAD
+
 
 	FetchInActiveVideos() ([]dto.GetVideosDTO, error)
 	ActiveVideo(video_id primitive.ObjectID, isActive bool) error
@@ -59,7 +55,6 @@ type VideoService interface {
 type videocategoriesservice struct {
 	repo                repositories.VideoRepository
 	notificationService notificationmanager.NotificationManager
-=======
 	//GetVideoById()
 
 	VideoFullDetails(videoId primitive.ObjectID) (interface{}, error)
@@ -68,18 +63,17 @@ type videocategoriesservice struct {
 type videocategoriesservice struct {
 	repo          repositories.VideoRepository
 	userVideoRepo repositories.UserVideoRepository
->>>>>>> 9c19887285b2026e2c65966dca4df5157c7dfcd3
+
 }
 
 func NewVideoCategoriesService(repo repositories.VideoRepository, notificationManager notificationmanager.NotificationManager) VideoService {
 	return &videocategoriesservice{
-<<<<<<< HEAD
+
 		repo:                repo,
 		notificationService: notificationManager,
-=======
+
 		repo:          repo,
 		userVideoRepo: userVideoRepo,
->>>>>>> 9c19887285b2026e2c65966dca4df5157c7dfcd3
 	}
 }
 
@@ -158,9 +152,9 @@ func (ser *videocategoriesservice) DuplicateCategory(categoryName string) (bool,
 	return ser.repo.DuplicateCategory(categoryName)
 }
 
-<<<<<<< HEAD
+
 func (ser *videocategoriesservice) AddVideo(video dto.CreateVideosDTO, file, thumbnailFile multipart.File) error {
-=======
+
 func (ser *videocategoriesservice) AddVideo(video dto.CreateVideosDTO, file multipart.File) (primitive.ObjectID, error) {
 	_, isCatErr := ser.repo.GetCategoryById(video.VideoCategoriesID)
 
@@ -168,14 +162,13 @@ func (ser *videocategoriesservice) AddVideo(video dto.CreateVideosDTO, file mult
 		return primitive.NewObjectID(), isCatErr
 	}
 
->>>>>>> 9c19887285b2026e2c65966dca4df5157c7dfcd3
+
 	videoToCreate := models.Videos{}
 
 	if smpErr := smapping.FillStruct(&videoToCreate, smapping.MapFields(video)); smpErr != nil {
 		return primitive.NewObjectID(), smpErr
 	}
 
-<<<<<<< HEAD
 	if _, isCatErr := ser.repo.GetCategoryById(videoToCreate.VideoCategoriesID); isCatErr != nil {
 		return isCatErr
 	}
@@ -206,14 +199,13 @@ func (ser *videocategoriesservice) AddVideo(video dto.CreateVideosDTO, file mult
 
 	fileKey, filePath, err := helper.LocalFileWrite(file, "static", "upload-*.mp4")
 
-=======
 	res, err := ser.repo.AddVideo(videoToCreate, file)
->>>>>>> 9c19887285b2026e2c65966dca4df5157c7dfcd3
+
 	if err != nil {
 		return primitive.NewObjectID(), err
 	}
 
-<<<<<<< HEAD
+
 	if err := s3.UploadFileToS3(filePath, fileKey, fileContent); err != nil {
 		log.Println("File Upload Error : ", err)
 		return err
@@ -228,9 +220,9 @@ func (ser *videocategoriesservice) AddVideo(video dto.CreateVideosDTO, file mult
 
 	err = ser.repo.AddVideo2(videoToCreate)
 	return err
-=======
+
 	return res, nil
->>>>>>> 9c19887285b2026e2c65966dca4df5157c7dfcd3
+
 }
 
 func (ser *videocategoriesservice) GetAllVideos() ([]dto.GetVideosDTO, error) {
@@ -248,7 +240,7 @@ func (ser *videocategoriesservice) GetAllVideos() ([]dto.GetVideosDTO, error) {
 
 	for i := range res {
 		temp := dto.GetVideosDTO{}
-<<<<<<< HEAD
+
 		smapping.FillStruct(&temp, smapping.MapFields(res[i]))
 
 		url, err := s3.GetVideoObjectUrl(temp.VideoPath)
@@ -265,7 +257,7 @@ func (ser *videocategoriesservice) GetAllVideos() ([]dto.GetVideosDTO, error) {
 		temp.VideoPath = url
 		temp.VideoThumbnail = thumbnailUrl
 		temp.DownloadCount = res[i].DownloadCount
-=======
+
 		_ = smapping.FillStruct(&temp, smapping.MapFields(res[i]))
 		videoPath := ""
 		if strings.Contains(temp.VideoPath, "static") {
@@ -275,7 +267,7 @@ func (ser *videocategoriesservice) GetAllVideos() ([]dto.GetVideosDTO, error) {
 		}
 
 		temp.VideoPath = videoPath
->>>>>>> 9c19887285b2026e2c65966dca4df5157c7dfcd3
+
 		allVideos = append(allVideos, temp)
 	}
 
@@ -302,7 +294,7 @@ func (ser *videocategoriesservice) DeleteVideo(videoId primitive.ObjectID) error
 	return err
 }
 
-<<<<<<< HEAD
+
 func (ser *videocategoriesservice) FetchInActiveVideos() ([]dto.GetVideosDTO, error) {
 	result, err := ser.repo.FetchInActiveVideos()
 
@@ -401,8 +393,8 @@ func (ser *videocategoriesservice) GetShareVideo(fileKey string) error {
 		return err
 	}
 	return nil
-=======
+
 func (ser *videocategoriesservice) VideoFullDetails(videoId primitive.ObjectID) (interface{}, error) {
 	return ser.repo.VideoFullDetails(videoId)
->>>>>>> 9c19887285b2026e2c65966dca4df5157c7dfcd3
+
 }
