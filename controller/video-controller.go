@@ -1,8 +1,12 @@
 package controller
 
 import (
+
 	"log"
 	"net/http"
+
+	"errors"
+	"fmt"
 
 	"github.com/aniket0951/Chatrapati-Maharaj/dto"
 	"github.com/aniket0951/Chatrapati-Maharaj/helper"
@@ -131,8 +135,11 @@ func (c *videocontroller) DeleteCategory(ctx *gin.Context) {
 		return
 	}
 
+
 	if !primitive.IsValidObjectID(string(categoryId)) {
 		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, helper.INVALID_ID, helper.VIDEO_DATA)
+	if !primitive.IsValidObjectID(categoryId) {
+		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, helper.INVALID_ID, helper.VIDEO_DATA, helper.EmptyObj{})
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
@@ -161,6 +168,7 @@ func (c *videocontroller) AddVideo(ctx *gin.Context) {
 	videoToCreate := dto.CreateVideosDTO{
 		VideoTitle:        title,
 		VideoDescription:  desc,
+
 		IsVideoActive:     false,
 		VideoCategoriesID: objID,
 	}
@@ -174,6 +182,8 @@ func (c *videocontroller) AddVideo(ctx *gin.Context) {
 	}
 
 	err := c.service.AddVideo(videoToCreate, file, thumbailFile)
+
+	res, err := c.service.AddVideo(videoToCreate, file)
 
 	if err != nil {
 		response := helper.BuildFailedResponse(helper.FAILED_PROCESS, err.Error(), helper.VIDEO_DATA)
@@ -270,6 +280,7 @@ func (c *videocontroller) DeleteVideo(ctx *gin.Context) {
 	response := helper.BuildSuccessResponse(helper.DELETE_SUCCESS, helper.VIDEO_DATA, helper.EmptyObj{})
 	ctx.JSON(http.StatusOK, response)
 }
+
 
 func (c *videocontroller) FetchInActiveVideos(ctx *gin.Context) {
 	res, err := c.service.FetchInActiveVideos()
@@ -398,5 +409,50 @@ func (c *videocontroller) GenerateSignVideoURL(ctx *gin.Context) {
 	respo := s3.GetVideoObjectInput(fileKey)
 	defer respo.Body.Close()
 	ctx.DataFromReader(http.StatusOK, *respo.ContentLength, *respo.ContentType, respo.Body, nil)
+
+func (c *videocontroller) VideoFullDetails(ctx *gin.Context) {
+	videoId := ctx.Request.URL.Query().Get("video_id")
+
+	if videoId == "" {
+		helper.RequestBodyEmptyResponse(ctx)
+		return
+	}
+
+	if !primitive.IsValidObjectID(videoId) {
+		helper.BuildUnprocessableEntityResponse(ctx, errors.New("invalid input passed"))
+		return
+	}
+
+	objId, objErr := primitive.ObjectIDFromHex(videoId)
+
+	if objErr != nil {
+		helper.BuildUnprocessableEntityResponse(ctx, objErr)
+		return
+	}
+
+	res, err := c.service.VideoFullDetails(objId)
+
+	if err != nil {
+		helper.BuildUnprocessableEntityResponse(ctx, err)
+		return
+	}
+
+	response := helper.BuildSuccessResponse(helper.FETCHED_SUCCESS, helper.VIDEO_DATA, res)
+	ctx.JSON(http.StatusOK, response)
+
+}
+
+func (c *videocontroller) CreateVerificationProcess(videoId primitive.ObjectID, verificationStatus string) {
+	var videoVerification dto.CreateVideoVerificationDTO
+
+	userId, _ := primitive.ObjectIDFromHex(helper.USER_ID)
+
+	videoVerification.VideoId = videoId
+	videoVerification.UserId = userId
+	videoVerification.VerificationStatus = verificationStatus
+
+	err := c.videoVerificationService.CreateVerification(videoVerification)
+
+	fmt.Println(err)
 }
 

@@ -28,6 +28,7 @@ type VideoService interface {
 	DuplicateCategory(categoryName string) (bool, error)
 
 	AddVideo(video dto.CreateVideosDTO, file, thumbnail multipart.File) error
+
 	GetAllVideos() ([]dto.GetVideosDTO, error)
 	UpdateVideo(video dto.UpdateVideoDTO) error
 	DeleteVideo(videoId primitive.ObjectID) error
@@ -44,6 +45,7 @@ type VideoService interface {
 type videocategoriesservice struct {
 	repo                repositories.VideoRepository
 	notificationService notificationmanager.NotificationManager
+
 }
 
 func NewVideoCategoriesService(repo repositories.VideoRepository, notificationManager notificationmanager.NotificationManager) VideoService {
@@ -128,6 +130,7 @@ func (ser *videocategoriesservice) DuplicateCategory(categoryName string) (bool,
 	return ser.repo.DuplicateCategory(categoryName)
 }
 
+
 func (ser *videocategoriesservice) AddVideo(video dto.CreateVideosDTO, file, thumbnailFile multipart.File) error {
 	videoToCreate := models.Videos{}
 
@@ -165,6 +168,7 @@ func (ser *videocategoriesservice) AddVideo(video dto.CreateVideosDTO, file, thu
 
 	fileKey, filePath, err := helper.LocalFileWrite(file, "static", "upload-*.mp4")
 
+
 	if err != nil {
 		return err
 	}
@@ -183,6 +187,7 @@ func (ser *videocategoriesservice) AddVideo(video dto.CreateVideosDTO, file, thu
 
 	err = ser.repo.AddVideo2(videoToCreate)
 	return err
+
 }
 
 func (ser *videocategoriesservice) GetAllVideos() ([]dto.GetVideosDTO, error) {
@@ -200,6 +205,7 @@ func (ser *videocategoriesservice) GetAllVideos() ([]dto.GetVideosDTO, error) {
 
 	for i := range res {
 		temp := dto.GetVideosDTO{}
+
 		smapping.FillStruct(&temp, smapping.MapFields(res[i]))
 
 		url, err := s3.GetVideoObjectUrl(temp.VideoPath)
@@ -231,6 +237,7 @@ func (ser *videocategoriesservice) UpdateVideo(video dto.UpdateVideoDTO) error {
 
 	return ser.repo.UpdateVideo(videoToUpdate)
 }
+
 
 func (ser *videocategoriesservice) DeleteVideo(videoId primitive.ObjectID) error {
 	err := ser.repo.DeleteVideo(videoId)

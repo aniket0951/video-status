@@ -67,6 +67,7 @@ func main() {
 
 	routers.UserAuthRouter(router)
 	routers.VideoRouter(router)
+
 	routers.WallPaperRouter(router)
 
 	router.Run("0.0.0.0:8080")
@@ -104,6 +105,8 @@ func generateToken(fcm_token string) error {
 		log.Fatalf("error sending message: %v\n", err)
 		return err
 	}
+
+	routers.VideoVerificationRoute(router)
 
 	// Print the message ID upon successful sending.
 	fmt.Printf("Successfully sent message: %s\n", response)

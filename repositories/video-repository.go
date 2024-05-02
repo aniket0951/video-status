@@ -31,7 +31,6 @@ type VideoRepository interface {
 	GetCategoryById(catId primitive.ObjectID) (models.VideoCategories, error)
 	DeleteCategory(categoryId primitive.ObjectID) error
 	DuplicateCategory(categoryName string) (bool, error)
-
 	AddVideo(video models.Videos, file multipart.File) error
 	AddVideo2(video models.Videos) error
 	GetAllVideos() ([]models.Videos, error)
@@ -44,7 +43,6 @@ type VideoRepository interface {
 	IncreaseDownloadCount(video_id primitive.ObjectID) error
 
 	IsFileKeyExists(fileKey string) (bool, error)
-
 	Init() (context.Context, context.CancelFunc)
 }
 
@@ -231,6 +229,7 @@ func (db *videocategoriesrepo) AddVideo(video models.Videos, file multipart.File
 	return nil
 }
 
+
 func (db *videocategoriesrepo) AddVideo2(video models.Videos) error {
 	video.ID = primitive.NewObjectID()
 	video.CreatedAt = primitive.NewDateTimeFromTime(time.Now())
@@ -247,6 +246,7 @@ func (db *videocategoriesrepo) AddVideo2(video models.Videos) error {
 func (db *videocategoriesrepo) GetAllVideos() ([]models.Videos, error) {
 	ctx, cancel := db.Init()
 	defer cancel()
+
 
 	queryOptions := options.Find().SetSort(bson.D{{Key: "_id", Value: -1}})
 	filter := bson.M{"is_active": true}
@@ -346,6 +346,7 @@ func (db *videocategoriesrepo) DeleteVideo(videoId primitive.ObjectID) error {
 
 	return fileRemoveErr
 }
+
 
 func (db *videocategoriesrepo) FetchInActiveVideos() ([]models.Videos, error) {
 	ctx, cancel := db.Init()
