@@ -33,15 +33,15 @@ var DATA = "data"
 var USER_DATA = "user_data"
 var VIDEO_DATA = "video_data"
 var VIDEO_CATEGORY = "video_category"
-<<<<<<< HEAD
+
 var WALLPAPER_DATA = "wallpaper_data"
 
 // Wallpapepr Catergory like recent, old, new, most liked etc
 var RECENT = "recent"
 
-=======
+
 var VIDEO_VERIFICATION = "video_verification"
->>>>>>> 9c19887285b2026e2c65966dca4df5157c7dfcd3
+
 var USER_ID = ""
 
 // VERIFICATION_PENDING ----------- VIDEO VERIFICATION STATUS --------------//
