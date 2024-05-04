@@ -68,7 +68,10 @@ func (serv *service) GetWallPapers(args dto.GetWallPaperRequest) (dto.GetWallPap
 		isActive = true
 	}
 
-	result, err := serv.wallPaperRepo.GetWallPapers(isActive, args.PageSkip, args.PageLimit)
+	offset := (args.PageSkip - 1) * args.PageLimit
+	limit := args.PageLimit
+
+	result, err := serv.wallPaperRepo.GetWallPapers(isActive, offset, limit)
 
 	if err != nil {
 		return dto.GetWallPapersDTO{}, err

@@ -41,8 +41,6 @@ var RECENT = "recent"
 
 
 var VIDEO_VERIFICATION = "video_verification"
-
-var VIDEO_VERIFICATION = "video_verification"
 var USER_ID = ""
 
 // VERIFICATION_PENDING ----------- VIDEO VERIFICATION STATUS --------------//

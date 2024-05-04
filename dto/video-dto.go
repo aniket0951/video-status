@@ -1,9 +1,6 @@
 package dto
 
-import (
-	"github.com/aniket0951/Chatrapati-Maharaj/models"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-)
+import "go.mongodb.org/mongo-driver/bson/primitive"
 
 type CreateVideoCategoriesDTO struct {
 	ID                  primitive.ObjectID `json:"id"`
@@ -24,7 +21,6 @@ type GetVideoCategoriesDTO struct {
 type CreateVideosDTO struct {
 	VideoTitle        string             `json:"video_title" validate:"required"`
 	VideoDescription  string             `json:"video_desc" validate:"required"`
-
 	IsVideoActive     bool               `json:"is_active"`
 	VideoCategoriesID primitive.ObjectID `json:"video_cat_id" validate:"required"`
 }
@@ -36,7 +32,6 @@ type UpdateVideoDTO struct {
 	IsVideoActive     bool               `json:"is_active" `
 	VideoCategoriesID primitive.ObjectID `json:"video_cat_id" `
 }
-
 
 type GetAllVideosRequestDTO struct {
 	Tag string `form:"tag" binding:"required,oneof=ACTIVE INACTIVE"`
@@ -53,6 +48,7 @@ type GetVideosDTO struct {
 	VideoThumbnail    string             `json:"video_thumbnail"`
 	CreatedAt         primitive.DateTime `json:"created_at,omitempty" `
 	UpdatedAt         primitive.DateTime `json:"updated_at,omitempty" `
+}
 type GetVideosDTO struct {
 	ID                primitive.ObjectID `json:"id" bson:"_id"`
 	VideoTitle        string             `json:"video_title" bson:"video_title"`
@@ -185,14 +181,3 @@ type CreateVerificationNotificationDTO struct {
 	UploadedDate primitive.DateTime `json:"uploadedDate" validate:"required"`
 }
 
-type GetVerificationNotificationDTO struct {
-	ID           primitive.ObjectID `json:"id" `
-	Title        string             `json:"title" `
-	Description  string             `json:"description" `
-	IsApproved   string             `json:"isApproved"`
-	VideoId      primitive.ObjectID `json:"video_id"`
-	UserId       primitive.ObjectID `json:"user_id"`
-	UploadedDate primitive.DateTime `json:"uploadedDate"`
-	CreatedAt    primitive.DateTime `json:"created_at"`
-	UpdatedAt    primitive.DateTime `json:"updated_at"`
-}
