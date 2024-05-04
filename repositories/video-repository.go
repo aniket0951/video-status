@@ -3,13 +3,10 @@ package repositories
 import (
 	"context"
 	"errors"
-
-	"fmt"
 	"io/ioutil"
 	"mime/multipart"
 	"os"
 	"path"
-
 	"reflect"
 	"strings"
 	"time"
@@ -24,8 +21,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-var videoCategoryCollection = dbconfig.GetCollection(dbconfig.DB, "video_category")
-var videosCollection = dbconfig.GetCollection(dbconfig.DB, "videos")
+var videoCategoryCollection *mongo.Collection = dbconfig.GetCollection(dbconfig.DB, "video_category")
+var videosCollection *mongo.Collection = dbconfig.GetCollection(dbconfig.DB, "videos")
 
 type VideoRepository interface {
 	CreateCategory(categories models.VideoCategories) (models.VideoCategories, error)
@@ -34,45 +31,30 @@ type VideoRepository interface {
 	GetCategoryById(catId primitive.ObjectID) (models.VideoCategories, error)
 	DeleteCategory(categoryId primitive.ObjectID) error
 	DuplicateCategory(categoryName string) (bool, error)
-
-
 	AddVideo(video models.Videos, file multipart.File) error
 	AddVideo2(video models.Videos) error
-	AddVideo(video models.Videos, file multipart.File) (primitive.ObjectID, error)
-
-	AddVideo(video models.Videos, file multipart.File) (primitive.ObjectID, error)
-
 	GetAllVideos() ([]models.Videos, error)
 	GetVideoByID(videoId primitive.ObjectID) (models.Videos, error)
 	UpdateVideo(video models.Videos) error
-	UpdateVideoVerification(video models.Videos) error
 	DeleteVideo(videoId primitive.ObjectID) error
-
 
 	FetchInActiveVideos() ([]models.Videos, error)
 	ActiveVideo(video_id primitive.ObjectID, isActive bool) error
 	IncreaseDownloadCount(video_id primitive.ObjectID) error
 
 	IsFileKeyExists(fileKey string) (bool, error)
-
-	VideoFullDetails(videoId primitive.ObjectID) (interface{}, error)
-
-	VideoFullDetails(videoId primitive.ObjectID) (interface{}, error)
-
 	Init() (context.Context, context.CancelFunc)
 }
 
 type videocategoriesrepo struct {
-	collection          *mongo.Collection
-	videoscollection    *mongo.Collection
-	userVideoConnection *mongo.Collection
+	collection       *mongo.Collection
+	videoscollection *mongo.Collection
 }
 
 func NewVideoCategoriesRepository() VideoRepository {
 	return &videocategoriesrepo{
-		collection:          videoCategoryCollection,
-		videoscollection:    videosCollection,
-		userVideoConnection: userVideoCollection,
+		collection:       videoCategoryCollection,
+		videoscollection: videosCollection,
 	}
 }
 
@@ -140,7 +122,7 @@ func (db *videocategoriesrepo) GetAllCategory() ([]models.VideoCategories, error
 		return []models.VideoCategories{}, curErr
 	}
 
-	var result []models.VideoCategories
+	result := []models.VideoCategories{}
 	err := cursor.All(ctx, &result)
 
 	if err != nil {
@@ -199,7 +181,7 @@ func (db *videocategoriesrepo) DuplicateCategory(categoryName string) (bool, err
 	ctx, cancel := db.Init()
 	defer cancel()
 	category := models.VideoCategories{}
-	_ = db.collection.FindOne(ctx, filter).Decode(&category)
+	db.collection.FindOne(ctx, filter).Decode(&category)
 
 	if (category == models.VideoCategories{}) {
 		return false, nil
@@ -209,47 +191,29 @@ func (db *videocategoriesrepo) DuplicateCategory(categoryName string) (bool, err
 	return true, errors.New("this category already exits")
 }
 
-func (db *videocategoriesrepo) AddVideo(video models.Videos, file multipart.File) (primitive.ObjectID, error) {
+func (db *videocategoriesrepo) AddVideo(video models.Videos, file multipart.File) error {
 
 	video.ID = primitive.NewObjectID()
 	video.CreatedAt = primitive.NewDateTimeFromTime(time.Now())
 	video.UpdatedAt = primitive.NewDateTimeFromTime(time.Now())
-	video.IsVideoActive = false
-	video.IsVerified = false
-	video.IsPublished = false
 
 	tempFile, err := ioutil.TempFile("static", "upload-*.mp4")
 
 	if err != nil {
-		return primitive.NewObjectID(), err
+		return err
 	}
 
-	defer func(tempFile *os.File) {
-		err := tempFile.Close()
-		if err != nil {
-			fmt.Println(err)
-		}
-	}(tempFile)
+	defer tempFile.Close()
 
 	fileBytes, fileReader := ioutil.ReadAll(file)
 
 	if fileReader != nil {
-		return video.ID, fileReader
+		return fileReader
 	}
 
-	_, err = tempFile.Write(fileBytes)
-	defer func(file multipart.File) {
-		err := file.Close()
-		if err != nil {
-			fmt.Println(err)
-		}
-	}(file)
-	defer func(tempFile *os.File) {
-		err := tempFile.Close()
-		if err != nil {
-			fmt.Println(err)
-		}
-	}(tempFile)
+	tempFile.Write(fileBytes)
+	defer file.Close()
+	defer tempFile.Close()
 
 	video.VideoPath = path.Base(tempFile.Name())
 
@@ -259,10 +223,10 @@ func (db *videocategoriesrepo) AddVideo(video models.Videos, file multipart.File
 	_, insErr := db.videoscollection.InsertOne(ctx, &video)
 
 	if insErr != nil {
-		return primitive.NewObjectID(), insErr
+		return insErr
 	}
 
-	return video.ID, nil
+	return nil
 }
 
 
@@ -280,48 +244,21 @@ func (db *videocategoriesrepo) AddVideo2(video models.Videos) error {
 }
 
 func (db *videocategoriesrepo) GetAllVideos() ([]models.Videos, error) {
+	ctx, cancel := db.Init()
+	defer cancel()
 
 
 	queryOptions := options.Find().SetSort(bson.D{{Key: "_id", Value: -1}})
 	filter := bson.M{"is_active": true}
 	cursor, curErr := db.videoscollection.Find(ctx, filter, queryOptions)
 
-	filter := []bson.M{
-		bson.M{
-			"$match": bson.M{
-				"is_active": true,
-			},
-		},
-
-		{"$sort": bson.M{"_id": -1}},
-		{"$limit": 5},
-	}
-
-	cursor, curErr := db.videoscollection.Aggregate(context.TODO(), filter)
-
-func (db *videocategoriesrepo) GetAllVideos() ([]models.Videos, error) {
-
-	filter := []bson.M{
-		bson.M{
-			"$match": bson.M{
-				"is_active": true,
-			},
-		},
-
-		{"$sort": bson.M{"_id": -1}},
-		{"$limit": 5},
-	}
-
-	cursor, curErr := db.videoscollection.Aggregate(context.TODO(), filter)
-
-
 	if curErr != nil {
 		return []models.Videos{}, curErr
 	}
 
-	var videos []models.Videos
+	videos := []models.Videos{}
 
-	if err := cursor.All(context.TODO(), &videos); err != nil {
+	if err := cursor.All(ctx, &videos); err != nil {
 		return []models.Videos{}, err
 	}
 
@@ -335,33 +272,6 @@ func (db *videocategoriesrepo) UpdateVideo(video models.Videos) error {
 			bson.E{Key: "video_desc", Value: video.VideoDescription},
 			bson.E{Key: "is_active", Value: video.IsVideoActive},
 			bson.E{Key: "v_cat_id", Value: video.VideoCategoriesID},
-			bson.E{Key: "updated_at", Value: primitive.NewDateTimeFromTime(time.Now())},
-		}},
-	}
-
-	ctx, cancel := db.Init()
-	defer cancel()
-
-	res, upErr := db.videoscollection.UpdateByID(ctx, video.ID, update)
-
-	if upErr != nil {
-		return upErr
-	}
-
-	if res.MatchedCount == 0 {
-		return errors.New("video not found to update")
-	}
-
-	return nil
-}
-
-func (db *videocategoriesrepo) UpdateVideoVerification(video models.Videos) error {
-
-	update := bson.D{
-		bson.E{Key: "$set", Value: bson.D{
-			bson.E{Key: "is_verified", Value: video.IsVerified},
-			bson.E{Key: "is_published", Value: video.IsPublished},
-			bson.E{Key: "is_active", Value: video.IsVideoActive},
 			bson.E{Key: "updated_at", Value: primitive.NewDateTimeFromTime(time.Now())},
 		}},
 	}
@@ -402,6 +312,7 @@ func (db *videocategoriesrepo) GetVideoByID(videoId primitive.ObjectID) (models.
 
 func (db *videocategoriesrepo) DeleteVideo(videoId primitive.ObjectID) error {
 	video, err := db.GetVideoByID(videoId)
+
 	if err != nil {
 		return err
 	}
@@ -423,7 +334,6 @@ func (db *videocategoriesrepo) DeleteVideo(videoId primitive.ObjectID) error {
 		return errors.New("failed to delete the video")
 	}
 
-
 	path := video.VideoPath
 	var fileRemoveErr error
 	if strings.Contains(path, "static") {
@@ -433,15 +343,6 @@ func (db *videocategoriesrepo) DeleteVideo(videoId primitive.ObjectID) error {
 	}
 
 	// fileRemoveErr = os.Remove(video.VideoPath)
-
-	var fileRemoveErr error
-
-	if strings.Contains(video.VideoPath, "static") {
-		fileRemoveErr = os.Remove(video.VideoPath)
-	} else {
-		fileRemoveErr = os.Remove("static/" + video.VideoPath)
-	}
-
 
 	return fileRemoveErr
 }
@@ -525,43 +426,5 @@ func (db *videocategoriesrepo) IsFileKeyExists(fileKey string) (bool, error) {
 	}
 
 	return true, nil
-
-func (db *videocategoriesrepo) VideoFullDetails(videoId primitive.ObjectID) (interface{}, error) {
-	filter := []bson.M{
-		bson.M{
-			"$match": bson.M{
-				"video_id": videoId,
-			},
-		},
-		bson.M{
-			"$lookup": bson.M{
-				"from":         "users",
-				"localField":   "user_id",
-				"foreignField": "_id",
-				"as":           "user_data",
-			},
-		},
-		bson.M{
-			"$lookup": bson.M{
-				"from":         "videos",
-				"localField":   "video_id",
-				"foreignField": "_id",
-				"as":           "videos_data",
-			},
-		},
-	}
-
-	cursor, curErr := db.userVideoConnection.Aggregate(context.TODO(), filter)
-
-	if curErr != nil {
-		return nil, curErr
-	}
-
-	var videoDetail []bson.M
-
-	if err := cursor.All(context.TODO(), &videoDetail); err != nil {
-		return nil, err
-	}
-
-	return videoDetail, nil
 }
+

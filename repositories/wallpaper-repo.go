@@ -58,8 +58,9 @@ func (repo *repo) GetWallPapers(isActive bool, skip, limit int) ([]models.WallPa
 	}
 
 	sort := options.Find().SetSort(bson.M{"updated_at": -1})
-	// sort.SetSkip(int64(skip))
-	// sort.SetLimit(int64(limit))
+	//sort := options.Find()
+	sort.SetSkip(int64(skip))
+	sort.SetLimit(int64(limit))
 	cursor, err := repo.WallPaperCollection.Find(ctx, filter, sort)
 
 	if err != nil {

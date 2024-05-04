@@ -19,7 +19,7 @@ import (
 
 func CORSConfig() cors.Config {
 	corsConfig := cors.DefaultConfig()
-	corsConfig.AllowOrigins = []string{"http://localhost:3000"}
+	corsConfig.AllowOrigins = []string{"*"}
 	corsConfig.AllowCredentials = true
 	corsConfig.AddAllowHeaders("Access-Control-Allow-Headers", "access-control-allow-origin, access-control-allow-headers", "Content-Type", "X-XSRF-TOKEN", "Accept", "Origin", "X-Requested-With", "Authorization")
 	corsConfig.AddAllowMethods("GET", "POST", "PUT", "DELETE")
@@ -35,10 +35,10 @@ const (
 )
 
 func main() {
-	router := gin.Default()
+	router := gin.New()
 	router.Use(cors.New(CORSConfig()))
-	gin.SetMode(gin.ReleaseMode)
-	router.Static("static", "static")
+
+	router.Static("static", "./static")
 
 	router.GET("/", func(ctx *gin.Context) {
 		response := map[string]interface{}{}
@@ -69,9 +69,8 @@ func main() {
 	routers.VideoRouter(router)
 
 	routers.WallPaperRouter(router)
-	routers.VideoVerificationRoute(router)
 
-	router.Run("0.0.0.0:5000")
+	router.Run("0.0.0.0:8080")
 }
 
 func generateToken(fcm_token string) error {
@@ -113,3 +112,4 @@ func generateToken(fcm_token string) error {
 	fmt.Printf("Successfully sent message: %s\n", response)
 	return nil
 }
+

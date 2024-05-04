@@ -18,13 +18,6 @@ import (
 	"github.com/aniket0951/Chatrapati-Maharaj/s3"
 	"github.com/mashingan/smapping"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-
-	"mime/multipart"
-	"strings"
-)
-
-var (
-	userVideoRepo = repositories.NewUserVideoRepository()
 )
 
 type VideoService interface {
@@ -34,15 +27,10 @@ type VideoService interface {
 	DeleteCategory(categoryId primitive.ObjectID) error
 	DuplicateCategory(categoryName string) (bool, error)
 
-
 	AddVideo(video dto.CreateVideosDTO, file, thumbnail multipart.File) error
-
-	AddVideo(video dto.CreateVideosDTO, file multipart.File) (primitive.ObjectID, error)
-	AddVideo(video dto.CreateVideosDTO, file multipart.File) (primitive.ObjectID, error)
 
 	GetAllVideos() ([]dto.GetVideosDTO, error)
 	UpdateVideo(video dto.UpdateVideoDTO) error
-	UpdateVideoVerification(video models.Videos) error
 	DeleteVideo(videoId primitive.ObjectID) error
 
 	FetchInActiveVideos() ([]dto.GetVideosDTO, error)
@@ -57,27 +45,13 @@ type VideoService interface {
 type videocategoriesservice struct {
 	repo                repositories.VideoRepository
 	notificationService notificationmanager.NotificationManager
-	//GetVideoById()
 
-	VideoFullDetails(videoId primitive.ObjectID) (interface{}, error)
-}
-
-type videocategoriesservice struct {
-	repo          repositories.VideoRepository
-	userVideoRepo repositories.UserVideoRepository
 }
 
 func NewVideoCategoriesService(repo repositories.VideoRepository, notificationManager notificationmanager.NotificationManager) VideoService {
 	return &videocategoriesservice{
-
 		repo:                repo,
 		notificationService: notificationManager,
-
-		repo:          repo,
-		userVideoRepo: userVideoRepo,
-
-		repo:          repo,
-		userVideoRepo: userVideoRepo,
 	}
 }
 
@@ -103,7 +77,7 @@ func (ser *videocategoriesservice) CreateCategory(category dto.CreateVideoCatego
 
 	newCategory := dto.GetVideoCategoriesDTO{}
 
-	_ = smapping.FillStruct(&newCategory, smapping.MapFields(res))
+	smapping.FillStruct(&newCategory, smapping.MapFields(res))
 
 	return newCategory, nil
 }
@@ -122,7 +96,7 @@ func (ser *videocategoriesservice) UpdateCategory(category dto.CreateVideoCatego
 	}
 
 	newCategory := dto.GetVideoCategoriesDTO{}
-	_ = smapping.FillStruct(&newCategory, smapping.MapFields(result))
+	smapping.FillStruct(&newCategory, smapping.MapFields(result))
 	return newCategory, nil
 }
 
@@ -133,11 +107,11 @@ func (ser *videocategoriesservice) GetAllCategory() ([]dto.GetVideoCategoriesDTO
 		return []dto.GetVideoCategoriesDTO{}, err
 	}
 
-	var allCategory []dto.GetVideoCategoriesDTO
+	allCategory := []dto.GetVideoCategoriesDTO{}
 
 	for i := range res {
 		temp := dto.GetVideoCategoriesDTO{}
-		_ = smapping.FillStruct(&temp, smapping.MapFields(res[i]))
+		smapping.FillStruct(&temp, smapping.MapFields(res[i]))
 
 		allCategory = append(allCategory, temp)
 	}
@@ -158,18 +132,10 @@ func (ser *videocategoriesservice) DuplicateCategory(categoryName string) (bool,
 
 
 func (ser *videocategoriesservice) AddVideo(video dto.CreateVideosDTO, file, thumbnailFile multipart.File) error {
-
-func (ser *videocategoriesservice) AddVideo(video dto.CreateVideosDTO, file multipart.File) (primitive.ObjectID, error) {
-	_, isCatErr := ser.repo.GetCategoryById(video.VideoCategoriesID)
-
-	if isCatErr != nil {
-		return primitive.NewObjectID(), isCatErr
-	}
-
 	videoToCreate := models.Videos{}
 
 	if smpErr := smapping.FillStruct(&videoToCreate, smapping.MapFields(video)); smpErr != nil {
-		return primitive.NewObjectID(), smpErr
+		return smpErr
 	}
 
 	if _, isCatErr := ser.repo.GetCategoryById(videoToCreate.VideoCategoriesID); isCatErr != nil {
@@ -203,9 +169,8 @@ func (ser *videocategoriesservice) AddVideo(video dto.CreateVideosDTO, file mult
 	fileKey, filePath, err := helper.LocalFileWrite(file, "static", "upload-*.mp4")
 
 
-	res, err := ser.repo.AddVideo(videoToCreate, file)
 	if err != nil {
-		return primitive.NewObjectID(), err
+		return err
 	}
 
 	if err := s3.UploadFileToS3(filePath, fileKey, fileContent); err != nil {
@@ -223,26 +188,6 @@ func (ser *videocategoriesservice) AddVideo(video dto.CreateVideosDTO, file mult
 	err = ser.repo.AddVideo2(videoToCreate)
 	return err
 
-	return res, nil
-func (ser *videocategoriesservice) AddVideo(video dto.CreateVideosDTO, file multipart.File) (primitive.ObjectID, error) {
-	_, isCatErr := ser.repo.GetCategoryById(video.VideoCategoriesID)
-
-	if isCatErr != nil {
-		return primitive.NewObjectID(), isCatErr
-	}
-
-	videoToCreate := models.Videos{}
-
-	if smpErr := smapping.FillStruct(&videoToCreate, smapping.MapFields(video)); smpErr != nil {
-		return primitive.NewObjectID(), smpErr
-	}
-
-	res, err := ser.repo.AddVideo(videoToCreate, file)
-	if err != nil {
-		return primitive.NewObjectID(), err
-	}
-
-	return res, nil
 }
 
 func (ser *videocategoriesservice) GetAllVideos() ([]dto.GetVideosDTO, error) {
@@ -252,7 +197,7 @@ func (ser *videocategoriesservice) GetAllVideos() ([]dto.GetVideosDTO, error) {
 		return []dto.GetVideosDTO{}, nil
 	}
 
-	var allVideos []dto.GetVideosDTO
+	allVideos := []dto.GetVideosDTO{}
 
 	if len(res) == 0 {
 		return []dto.GetVideosDTO{}, errors.New("videos not availabel")
@@ -277,16 +222,6 @@ func (ser *videocategoriesservice) GetAllVideos() ([]dto.GetVideosDTO, error) {
 		temp.VideoPath = url
 		temp.VideoThumbnail = thumbnailUrl
 		temp.DownloadCount = res[i].DownloadCount
-
-		_ = smapping.FillStruct(&temp, smapping.MapFields(res[i]))
-		videoPath := ""
-		if strings.Contains(temp.VideoPath, "static") {
-			videoPath = "http://localhost:5000/" + temp.VideoPath
-		} else {
-			videoPath = "http://localhost:5000/static/" + temp.VideoPath
-		}
-
-		temp.VideoPath = videoPath
 		allVideos = append(allVideos, temp)
 	}
 
@@ -303,20 +238,12 @@ func (ser *videocategoriesservice) UpdateVideo(video dto.UpdateVideoDTO) error {
 	return ser.repo.UpdateVideo(videoToUpdate)
 }
 
-func (ser *videocategoriesservice) UpdateVideoVerification(video models.Videos) error {
-	return ser.repo.UpdateVideoVerification(video)
-}
-
-func (ser *videocategoriesservice) UpdateVideoVerification(video models.Videos) error {
-	return ser.repo.UpdateVideoVerification(video)
-}
 
 func (ser *videocategoriesservice) DeleteVideo(videoId primitive.ObjectID) error {
 	err := ser.repo.DeleteVideo(videoId)
 
 	return err
 }
-
 
 func (ser *videocategoriesservice) FetchInActiveVideos() ([]dto.GetVideosDTO, error) {
 	result, err := ser.repo.FetchInActiveVideos()
@@ -416,10 +343,5 @@ func (ser *videocategoriesservice) GetShareVideo(fileKey string) error {
 		return err
 	}
 	return nil
-
-func (ser *videocategoriesservice) VideoFullDetails(videoId primitive.ObjectID) (interface{}, error) {
-	return ser.repo.VideoFullDetails(videoId)
-
-func (ser *videocategoriesservice) VideoFullDetails(videoId primitive.ObjectID) (interface{}, error) {
-	return ser.repo.VideoFullDetails(videoId)
 }
+
